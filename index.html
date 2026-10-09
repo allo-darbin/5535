@@ -64,7 +64,7 @@
 <body>
     <div class="info-box">
         <label>
-            <input type="checkbox" id="toggle-labels" checked onchange="toggleLabels()">
+            <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
             Show Marker Labels
         </label>
     </div>
@@ -208,11 +208,14 @@
                             `📍 Open in Google Maps</a>`
                         )
                         .bindTooltip(
-                            `<b>${cp.name || 'Cheerpoint'}</b>`,
+                            `<b>${cp.name || 'Cheerpoint'}</b><br>` +
+                            `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
+                            `📍 Open in Google Maps</a>`,
                             {
                                 permanent: true,
                                 direction: 'bottom',
-                                offset: [0, 5]
+                                offset: [0, 5],
+                                interactive: true
                             }
                         );
 
