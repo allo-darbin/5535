@@ -20,19 +20,18 @@
 
     {
       "name": "King's Park",
-      "lat": 56.1150815,
-      "lon": -3.9523588
-    },
-      
+      "lat": 56.113886,
+      "lon": -3.9541579
+    },      
     {
       "name": "Albert Halls",
-      "lat": 56.1173437,
-      "lon": -3.9471343
+      "lat": 56.1224277,
+      "lon": -3.9614325
     },
     {
       "name": "West Bridge",
-      "lat": 56.1276494,
-      "lon": -3.943566
+      "lat": 56.1275231,
+      "lon": -3.943278
     },
       {
       "name": "Opposite Castle Vale",
@@ -51,8 +50,8 @@
     },
         {
       "name": "Sunnylaw",
-      "lat": 56.1532572,
-      "lon": -3.9496329
+      "lat": 56.1554935,
+      "lon": -3.9441678
     },
     {
       "name": "Wallace Monument",

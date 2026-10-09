@@ -94,8 +94,8 @@
                             fillOpacity: 0.9
                         })
                         .addTo(map)
-                        .bindPopup(`<b>🎉 ${cp.name}</b><br>${cp.note || ''}`)
-                        .bindTooltip(`🎉 ${cp.name}`, { permanent: true, direction: 'bottom', offset: [0, 5] });
+                        .bindPopup(`<b> ${cp.name}</b><br>${cp.note || ''}`)
+                        .bindTooltip(` ${cp.name}`, { permanent: true, direction: 'bottom', offset: [0, 5] });
                     });
                 }
             } catch (error) {
