@@ -61,13 +61,16 @@
       "name": "1140 Wallace Monument",
       "lat": 56.1387025,
       "lon": -3.9187577
-    }
+    },
     {
-      "name": "1150 Wallace Monument",
+      "name": "1150 Alloa Rd",
       "lat": 56.136684,
       "lon": -3.919597
+    },
+    {
+      "name": "1150 Shore Rd",
+      "lat": 56.1214376,
+      "lon": -3.9317318
     }
-
-
   ]
 }
