@@ -64,18 +64,9 @@
 <body>
     <div class="info-box">
         <label>
-            <input
-                type="checkbox"
-                id="toggle-labels"
-                checked
-                onchange="toggleLabels()"
-            >
+            <input type="checkbox" id="toggle-labels" checked onchange="toggleLabels()">
             Show Marker Labels
         </label>
-
-        <p id="team-name">Team 5535 — waiting for data...</p>
-        <p id="team-coords">Coordinates: waiting...</p>
-        <p id="team-status">Connecting to live tracker...</p>
     </div>
 
     <div id="map"></div>
@@ -307,14 +298,6 @@
                     `Lat/Lon: ${lat.toFixed(6)}, ${lon.toFixed(6)}<br>` +
                     `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
                     `📍 Open in Google Maps</a>`;
-
-                // Update the visible information panel.
-                teamNameElement.textContent = `${name} (#${raceNumber})`;
-                teamCoordsElement.textContent =
-                    `Lat/Lon: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
-                teamStatusElement.textContent =
-                    `Last successful fetch: ${new Date().toLocaleTimeString()}`;
-
                 // Log coordinates on every successful fetch,
                 // even if the position has not changed.
                 console.log(
