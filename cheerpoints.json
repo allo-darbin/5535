@@ -11,10 +11,42 @@
       "lat": 56.0926162,
       "lon": -3.9410971
     },
-        {
+      
+    {
       "name": "Cambusbarron",
       "lat": 56.1073282,
       "lon": -3.9760995
+    },
+
+    {
+      "name": "King's Park",
+      "lat": 56.1150815,
+      "lon": -3.9523588
+    },
+      
+    {
+      "name": "Albert Halls",
+      "lat": 56.1173437,
+      "lon": -3.9471343
+    },
+    {
+      "name": "West Bridge",
+      "lat": 56.1276494,
+      "lon": -3.943566
+    },
+        {
+      "name": "East Bridge",
+      "lat": 56.1291906,
+      "lon": -3.9365282
+    },
+    {
+      "name": "Wallace Monument",
+      "lat": 56.1073282,
+      "lon": -3.9760995
     }
+
+    
+
+
   ]
 }
