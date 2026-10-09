@@ -16,15 +16,21 @@
         }
         .info-box h3 { margin: 0 0 5px 0; font-size: 16px; color: #1a73e8; }
         .info-box p { margin: 3px 0; font-size: 13px; color: #444; }
+        .toggle-container { margin-top: 10px; font-size: 13px; border-top: 1px solid #eee; padding-top: 8px; }
     </style>
 </head>
 <body>
 
-    <!-- Floating Info Panel -->
+    <!-- Floating Info Panel with Label Toggle -->
     <div class="info-box">
         <h3 id="team-name">Team 5535: Connecting...</h3>
         <p id="team-status">Polling local relay every 30s...</p>
         <p id="team-coords">Coordinates: --</p>
+        <div class="toggle-container">
+            <label>
+                <input type="checkbox" id="toggle-labels" checked onchange="toggleLabels()"> Show Marker Labels
+            </label>
+        </div>
     </div>
 
     <!-- Map Container -->
@@ -45,6 +51,7 @@
         }).addTo(map);
 
         let marker = null;
+        let labelLayers = []; // Array to track tooltip layers for toggling
 
         // 2. Load the KML route file from your repository
         const routeLayer = omnivore.kml('route.kml')
@@ -63,7 +70,7 @@
                 
                 if (json.success && Array.isArray(json.data)) {
                     json.data.forEach(cp => {
-                        L.circleMarker([cp.la, cp.lo], {
+                        const m = L.circleMarker([cp.la, cp.lo], {
                             radius: 6,
                             color: cp.c || '#f44034',
                             fillColor: cp.c || '#f44034',
@@ -71,6 +78,8 @@
                         })
                         .addTo(map)
                         .bindTooltip(`<b>${cp.n}</b>`, { permanent: true, direction: 'top', offset: [0, -5] });
+                        
+                        labelLayers.push(m);
                     });
                 }
             } catch (error) {
@@ -87,15 +96,17 @@
                 
                 if (json.success && Array.isArray(json.data)) {
                     json.data.forEach(cp => {
-                        L.circleMarker([cp.lat, cp.lon], {
+                        const m = L.circleMarker([cp.lat, cp.lon], {
                             radius: 7,
                             color: '#9c27b0', // Purple color for cheer spots
                             fillColor: '#ba68c8',
                             fillOpacity: 0.9
                         })
                         .addTo(map)
-                        .bindPopup(`<b> ${cp.name}</b><br>${cp.note || ''}`)
-                        .bindTooltip(` ${cp.name}`, { permanent: true, direction: 'bottom', offset: [0, 5] });
+                        .bindPopup(`<b>${cp.name}</b><br>${cp.note || ''}`)
+                        .bindTooltip(`<b>${cp.name}</b>`, { permanent: true, direction: 'bottom', offset: [0, 5] });
+                        
+                        labelLayers.push(m);
                     });
                 }
             } catch (error) {
@@ -106,7 +117,19 @@
         loadCheckpoints();
         loadCheerpoints();
 
-        // 5. Function to fetch local JSON relay file updated by your laptop script every 30 seconds
+        // 5. Toggle function for labels
+        function toggleLabels() {
+            const show = document.getElementById('toggle-labels').checked;
+            labelLayers.forEach(layer => {
+                if (show) {
+                    layer.openTooltip();
+                } else {
+                    layer.closeTooltip();
+                }
+            });
+        }
+
+        // 6. Function to fetch local JSON relay file updated by your laptop script every 30 seconds
         async function updateTracker() {
             try {
                 const response = await fetch('team5535_live.json?t=' + new Date().getTime());
