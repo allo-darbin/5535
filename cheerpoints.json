@@ -30,8 +30,8 @@
     },
     {
       "name": "West Bridge",
-      "lat": 56.1275231,
-      "lon": -3.943278
+      "lat": 56.1297159,
+      "lon": -3.9447567
     },
       {
       "name": "Opposite Castle Vale",
@@ -50,9 +50,14 @@
     },
         {
       "name": "Sunnylaw",
-      "lat": 56.1554935,
-      "lon": -3.9441678
+      "lat": 56.1555782,
+      "lon": -3.9439598
     },
+        {
+      "name": "Dumyat",
+      "lat": 56.1562748,
+      "lon": -3.9417707
+    },    
     {
       "name": "Wallace Monument",
       "lat": 56.1073282,
