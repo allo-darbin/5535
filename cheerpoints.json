@@ -3,13 +3,18 @@
   "data": [
     {
       "name": "Bannockburn Main St",
-      "lat": 56.0922828,
-      "lon": -3.9571916
+      "lat": 56.0934532,
+      "lon": -3.9322904
     },
-        {
+    {
       "name": "Bowling Club",
       "lat": 56.0926162,
       "lon": -3.9410971
+    },
+        {
+      "name": "Cambusbarron",
+      "lat": 56.1073282,
+      "lon": -3.9760995
     }
   ]
 }
