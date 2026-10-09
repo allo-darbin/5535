@@ -1,4 +1,4 @@
 {"type":"checkpoints","success":true,"data":
-[{"id":402115,"i":"","p":"","n":"0855 Stirling High","c":"#f44034","icon":"flaticon-sprint","d":1,"g":500,"t":"control","sid":19654,"la":56.104259,"lo":-3.946177,"le":1},
-{"id":402117,"i":"","p":"","n":"1050 Allan Centre","c":"#f44034","icon":"flaticon-sprint","d":1,"g":500,"t":"control","sid":19654,"la":56.1535,"lo":-3.948872,"le":1},
-{"id":402119,"i":"","p":"","n":"1215 Finish","c":"#f44034","icon":"flaticon-sprint","d":1,"g":150,"t":"finish","sid":19654,"la":56.122185,"lo":-3.91031,"le":1}]}
+[{"id":402115,"i":"","p":"","n":"0855 Stuart Finish","c":"#f44034","icon":"flaticon-sprint","d":1,"g":500,"t":"control","sid":19654,"la":56.104259,"lo":-3.946177,"le":1},
+{"id":402117,"i":"","p":"","n":"1050 Alistair Finish","c":"#f44034","icon":"flaticon-sprint","d":1,"g":500,"t":"control","sid":19654,"la":56.1535,"lo":-3.948872,"le":1},
+{"id":402119,"i":"","p":"","n":"1215 Andrew Finish","c":"#f44034","icon":"flaticon-sprint","d":1,"g":150,"t":"finish","sid":19654,"la":56.122185,"lo":-3.91031,"le":1}]}
