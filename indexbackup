@@ -1,10 +1,12 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Team 5535 Live Tracker</title>
+
+    <!-- Inline Runner Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏃</text></svg>">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
@@ -31,13 +33,33 @@
             padding: 12px 18px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            max-width: 280px;
+            max-width: 290px;
             font-size: 13px;
         }
 
         .info-box p {
             margin: 6px 0 0;
             color: #444;
+        }
+
+        /* Prevent layer control from overlapping the zoom +/- buttons */
+        .leaflet-top.leaflet-left .leaflet-control-layers {
+            margin-top: 10px;
+        }
+
+        /* Standalone "Last Updated" text overlay in bottom-left corner */
+        .status-overlay {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #333;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            pointer-events: none;
         }
 
         .leaflet-popup-content a {
@@ -63,29 +85,64 @@
 
 <body>
     <div class="info-box">
-        <label>
+        <label style="display: block; margin-bottom: 8px;">
             <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
             Show Marker Labels
         </label>
+        <div style="border-top: 1px solid #eee; padding-top: 8px;">
+            <label for="timeOffset" style="display: block; font-size: 11px; margin-bottom: 3px; color: #666;">Time Offset (mins):</label>
+            <div style="display: flex; gap: 4px; align-items: center;">
+                <input type="number" id="timeOffset" value="0" onchange="applyTimeOffset()" style="width: 50px; padding: 3px; font-size: 12px;">
+                <button onclick="applyTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Apply</button>
+                <button onclick="resetTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Reset</button>
+            </div>
+        </div>
     </div>
+
+    <!-- Standalone text overlay at bottom-left -->
+    <div id="last-update" class="status-overlay">Tracking active...</div>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
+    <!-- Turf.js for route distance calculations -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <script>
-        // 1. Initialise the map.
-        const map = L.map('map').setView([56.122185, -3.91031], 13);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // 1. Initialise base maps and layer switcher.
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        });
+
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community'
+        });
+
+        const map = L.map('map', {
+            center: [56.122185, -3.91031],
+            zoom: 13,
+            layers: [osmLayer]
+        });
+
+        const baseMaps = {
+            "Street Map": osmLayer,
+            "Satellite View": satelliteLayer
+        };
+
+        // Position layer control in top-left (CSS ensures it stays below zoom buttons)
+        L.control.layers(baseMaps, null, { position: 'topleft' }).addTo(map);
 
         let marker = null;
-        let labelLayers = [];
+        let checkpointLayers = [];
+        let cheerpointLayers = [];
+        let rawCheckpointData = [];
+        let rawCheerpointData = [];
+        let parsedCheckpoints = [];
         let firstPositionReceived = false;
+        let routeGeoJSON = null;
 
         // 2. Load the KML route.
         omnivore.kml('route.kml')
@@ -99,11 +156,195 @@
                 if (!firstPositionReceived && this.getBounds().isValid()) {
                     map.fitBounds(this.getBounds());
                 }
+
+                routeGeoJSON = this.toGeoJSON();
             })
             .on('error', function (error) {
                 console.error('Could not load route.kml:', error);
             })
             .addTo(map);
+
+        // Helper to parse HHMM string, add offset minutes, and return new HHMM string
+        function adjustTimeString(timeStr, offsetMinutes) {
+            let hours = parseInt(timeStr.substring(0, 2), 10);
+            let mins = parseInt(timeStr.substring(2, 4), 10);
+            
+            let totalMinutes = (hours * 60) + mins + offsetMinutes;
+            totalMinutes = (totalMinutes + 1440) % 1440;
+            
+            let newHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+            let newMins = (totalMinutes % 60).toString().padStart(2, '0');
+            
+            return newHours + newMins;
+        }
+
+        // Render checkpoints taking current time offset into account
+        function renderCheckpoints() {
+            checkpointLayers.forEach(layer => map.removeLayer(layer));
+            checkpointLayers = [];
+            parsedCheckpoints = [];
+
+            const offsetInput = document.getElementById('timeOffset');
+            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
+
+            rawCheckpointData.forEach(cp => {
+                const lat = Number(cp.la);
+                const lon = Number(cp.lo);
+
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                    return;
+                }
+
+                let displayName = cp.n || 'Checkpoint';
+                let targetTimeStr = null;
+                const match = displayName.match(/^(\d{4})(\s.*)$/);
+                if (match) {
+                    const originalTime = match[1];
+                    const textDescription = match[2];
+                    targetTimeStr = adjustTimeString(originalTime, offsetMinutes);
+                    displayName = targetTimeStr + textDescription;
+                }
+
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+                const checkpoint = L.circleMarker([lat, lon], {
+                    radius: 6,
+                    color: cp.c || '#f44034',
+                    fillColor: cp.c || '#f44034',
+                    fillOpacity: 0.8
+                })
+                .addTo(map)
+                .bindPopup(
+                    `<b>${displayName}</b><br>` +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
+                    `📍 Open in Google Maps</a>`
+                )
+                .bindTooltip(
+                    `<b>${displayName}</b>`,
+                    {
+                        permanent: true,
+                        direction: 'top',
+                        offset: [0, -5]
+                    }
+                );
+
+                checkpointLayers.push(checkpoint);
+                parsedCheckpoints.push({ lat, lon, name: displayName, timeStr: targetTimeStr });
+            });
+        }
+
+        // Render cheerpoints taking current time offset into account
+        function renderCheerpoints() {
+            cheerpointLayers.forEach(layer => map.removeLayer(layer));
+            cheerpointLayers = [];
+
+            const offsetInput = document.getElementById('timeOffset');
+            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
+
+            rawCheerpointData.forEach(cp => {
+                const lat = Number(cp.lat);
+                const lon = Number(cp.lon);
+
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                    return;
+                }
+
+                let displayName = cp.name || 'Cheerpoint';
+                const match = displayName.match(/^(\d{4})(\s.*)$/);
+                if (match) {
+                    const originalTime = match[1];
+                    const textDescription = match[2];
+                    displayName = adjustTimeString(originalTime, offsetMinutes) + textDescription;
+                }
+
+                const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+
+                const cheerpoint = L.circleMarker([lat, lon], {
+                    radius: 7,
+                    color: '#9c27b0',
+                    fillColor: '#ba68c8',
+                    fillOpacity: 0.9
+                })
+                .addTo(map)
+                .bindPopup(
+                    `<b>${displayName}</b><br>` +
+                    `${cp.note || ''}<br>` +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
+                    `📍 Open in Google Maps</a>`
+                )
+                .bindTooltip(
+                    `<b>${displayName}</b>`,
+                    {
+                        permanent: true,
+                        direction: 'bottom',
+                        offset: [0, 5]
+                    }
+                );
+
+                cheerpointLayers.push(cheerpoint);
+            });
+        }
+
+        // Triggered when clicking "Apply" or changing the input
+        function applyTimeOffset() {
+            const offsetInput = document.getElementById('timeOffset');
+            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
+            
+            localStorage.setItem('checkpointTimeOffset', offsetMinutes);
+
+            renderCheckpoints();
+            renderCheerpoints();
+            toggleLabels();
+
+            if (marker) updateTracker();
+        }
+
+        // Reset offset back to 0
+        function resetTimeOffset() {
+            const input = document.getElementById('timeOffset');
+            if (input) {
+                input.value = 0;
+            }
+            applyTimeOffset();
+        }
+
+        // Calculate route distance to next upcoming checkpoint
+        function getNextCheckpointDetails(racerLat, racerLon) {
+            if (!routeGeoJSON || !parsedCheckpoints.length || typeof turf === 'undefined') {
+                return null;
+            }
+
+            try {
+                const runnerPt = turf.point([racerLon, racerLat]);
+                const routeLine = routeGeoJSON.features ? routeGeoJSON.features[0] : routeGeoJSON;
+                const snappedRunner = turf.nearestPointOnLine(routeLine, runnerPt);
+
+                let closestUpcoming = null;
+                let minDistanceAlongRoute = Infinity;
+
+                parsedCheckpoints.forEach(cp => {
+                    const cpPt = turf.point([cp.lon, cp.lat]);
+                    const snappedCp = turf.nearestPointOnLine(routeLine, cpPt);
+
+                    const sliced = turf.lineSlice(snappedRunner, snappedCp, routeLine);
+                    const distKm = turf.length(sliced, { units: 'kilometers' });
+
+                    if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
+                        minDistanceAlongRoute = distKm;
+                        closestUpcoming = {
+                            name: cp.name,
+                            distanceKm: distKm,
+                            timeStr: cp.timeStr
+                        };
+                    }
+                });
+
+                return closestUpcoming;
+            } catch (err) {
+                console.error("Distance calculation error:", err);
+                return null;
+            }
+        }
 
         // 3. Load official checkpoints.
         async function loadCheckpoints() {
@@ -120,41 +361,15 @@
                 const json = await response.json();
 
                 if (json.success && Array.isArray(json.data)) {
-                    json.data.forEach(cp => {
-                        const lat = Number(cp.la);
-                        const lon = Number(cp.lo);
+                    rawCheckpointData = json.data;
+                    
+                    const savedOffset = localStorage.getItem('checkpointTimeOffset');
+                    if (savedOffset !== null) {
+                        const input = document.getElementById('timeOffset');
+                        if (input) input.value = savedOffset;
+                    }
 
-                        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-                            return;
-                        }
-
-                        const mapsUrl =
-                            `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-
-                        const checkpoint = L.circleMarker([lat, lon], {
-                            radius: 6,
-                            color: cp.c || '#f44034',
-                            fillColor: cp.c || '#f44034',
-                            fillOpacity: 0.8
-                        })
-                        .addTo(map)
-                        .bindPopup(
-                            `<b>${cp.n || 'Checkpoint'}</b><br>` +
-                            `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
-                            `📍 Open in Google Maps</a>`
-                        )
-                        .bindTooltip(
-                            `<b>${cp.n || 'Checkpoint'}</b>`,
-                            {
-                                permanent: true,
-                                direction: 'top',
-                                offset: [0, -5]
-                            }
-                        );
-
-                        labelLayers.push(checkpoint);
-                    });
-
+                    renderCheckpoints();
                     toggleLabels();
                 }
             } catch (error) {
@@ -177,42 +392,8 @@
                 const json = await response.json();
 
                 if (json.success && Array.isArray(json.data)) {
-                    json.data.forEach(cp => {
-                        const lat = Number(cp.lat);
-                        const lon = Number(cp.lon);
-
-                        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-                            return;
-                        }
-
-                        const mapsUrl =
-                            `https://www.google.com/maps?q=${lat},${lon}`;
-
-                        const cheerpoint = L.circleMarker([lat, lon], {
-                            radius: 7,
-                            color: '#9c27b0',
-                            fillColor: '#ba68c8',
-                            fillOpacity: 0.9
-                        })
-                        .addTo(map)
-                        .bindPopup(
-                            `<b>${cp.name || 'Cheerpoint'}</b><br>` +
-                            `${cp.note || ''}<br>` +
-                            `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
-                            `📍 Open in Google Maps</a>`
-                        )
-                        .bindTooltip(
-                            `<b>${cp.name || 'Cheerpoint'}</b>`,
-                            {
-                                permanent: true,
-                                direction: 'bottom',
-                                offset: [0, 5]
-                            }
-                        );
-
-                        labelLayers.push(cheerpoint);
-                    });
-
+                    rawCheerpointData = json.data;
+                    renderCheerpoints();
                     toggleLabels();
                 }
             } catch (error) {
@@ -230,7 +411,7 @@
 
             const show = checkbox.checked;
 
-            labelLayers.forEach(layer => {
+            [...checkpointLayers, ...cheerpointLayers].forEach(layer => {
                 if (show) {
                     layer.openTooltip();
                 } else {
@@ -253,8 +434,6 @@
 
                 const json = await response.json();
 
-                // Python writes the complete API response:
-                // { type: "details", success: true, data: { ll: "lat,lon" } }
                 if (
                     !json ||
                     json.success !== true ||
@@ -286,22 +465,31 @@
                 const name = teamData.n || 'Team 5535';
                 const raceNumber = teamData.r || 5535;
 
-                const mapsUrl =
-                    `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+                let nextCpInfoHtml = '';
+                const nextCp = getNextCheckpointDetails(lat, lon);
+                if (nextCp) {
+                    const distMiles = (nextCp.distanceKm * 0.621371).toFixed(2);
+                    nextCpInfoHtml = `<br><b>Next:</b> ${nextCp.name}<br>` +
+                                     `<b>Distance along route:</b> ${distMiles} mi (${nextCp.distanceKm.toFixed(2)} km)<br>`;
+                }
 
                 const popupContent =
                     `<b>${name} (#${raceNumber})</b><br>` +
                     `Lat/Lon: ${lat.toFixed(6)}, ${lon.toFixed(6)}<br>` +
+                    `${nextCpInfoHtml}` +
                     `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
                     `📍 Open in Google Maps</a>`;
-                // Log coordinates on every successful fetch,
-                // even if the position has not changed.
-                console.log(
-                    `[${new Date().toLocaleTimeString()}] ` +
-                    `Team ${raceNumber} coordinates: ${lat}, ${lon}`
-                );
 
-                // Create the marker once; update it thereafter.
+                const timeString = new Date().toLocaleTimeString();
+                console.log(`[${timeString}] Team ${raceNumber} coordinates: ${lat}, ${lon}`);
+
+                const lastUpdateEl = document.getElementById('last-update');
+                if (lastUpdateEl) {
+                    lastUpdateEl.innerText = `Last updated: ${timeString}`;
+                }
+
                 if (marker) {
                     marker.setLatLng([lat, lon]);
                     marker.setPopupContent(popupContent);
@@ -319,24 +507,24 @@
                     .addTo(map)
                     .bindPopup(popupContent);
 
-                    // Centre on the racer when the first position arrives.
                     firstPositionReceived = true;
                     map.setView([lat, lon], 15);
                 }
 
             } catch (error) {
                 console.error('Error updating racer marker:', error);
+                const lastUpdateEl = document.getElementById('last-update');
+                if (lastUpdateEl) {
+                    lastUpdateEl.innerText = `Update failed (${new Date().toLocaleTimeString()})`;
+                }
             }
         }
 
-        // Allow tapping a marker again to close its popup.
-                // Allow tapping the map to close open popups.
         map.on('click', function () {
             map.closePopup();
         });
 
-
-        // 7. Start the tracker.
+        // 7. Start everything up.
         loadCheckpoints();
         loadCheerpoints();
 
