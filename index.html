@@ -144,14 +144,12 @@
                             `📍 Open in Google Maps</a>`
                         )
                         .bindTooltip(
-                                `<b>${cp.n || 'Checkpoint'}</b><br>` +
-                                `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`,
-                                {
-                                    permanent: true,
-                                    direction: 'top',
-                                    offset: [0, -5],
-                                    interactive: true
-                                }
+                            `<b>${cp.n || 'Checkpoint'}</b>`,
+                            {
+                                permanent: true,
+                                direction: 'top',
+                                offset: [0, -5]
+                            }
                         );
 
                         labelLayers.push(checkpoint);
@@ -204,14 +202,11 @@
                             `📍 Open in Google Maps</a>`
                         )
                         .bindTooltip(
-                            `<b>${cp.name || 'Cheerpoint'}</b><br>` +
-                            `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
-                            `📍 Open in Google Maps</a>`,
+                            `<b>${cp.name || 'Cheerpoint'}</b>`,
                             {
                                 permanent: true,
                                 direction: 'bottom',
-                                offset: [0, 5],
-                                interactive: true
+                                offset: [0, 5]
                             }
                         );
 
