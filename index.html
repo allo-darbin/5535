@@ -23,7 +23,7 @@
     <!-- Floating Info Panel -->
     <div class="info-box">
         <h3 id="team-name">Team 5535: Connecting...</h3>
-        <p id="team-status">Polling worker every 30s...</p>
+        <p id="team-status">Polling local relay every 30s...</p>
         <p id="team-coords">Coordinates: --</p>
     </div>
 
@@ -54,64 +54,52 @@
             })
             .addTo(map);
 
-        // 3. Function to fetch live JSON via your Cloudflare Worker every 30 seconds
+        // 3. Function to fetch local JSON relay file updated by your laptop script every 30 seconds
         async function updateTracker() {
             try {
-                const workerUrl = 'https://race-proxy.stuart-28b.workers.dev/';
+                // Appending timestamp prevents browser/GitHub Pages caching old JSON payloads
+                const response = await fetch('team5535_live.json?t=' + new Date().getTime());
                 
-                const response = await fetch(workerUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const json = await response.json();
 
-                let foundTeam = null;
+                // OpenTracking team details format: { success: true, data: { n: "Team Name", ll: "lat,lon", ... } }
+                let teamData = null;
 
-                // Robust recursive or flat search to handle OpenTracking's exact JSON layout
-                function searchTeams(obj) {
-                    if (!obj) return;
-                    if (Array.isArray(obj)) {
-                        for (let item of obj) {
-                            searchTeams(item);
-                        }
-                    } else if (typeof obj === 'object') {
-                        // Check if this object represents team 5535
-                        if (obj.r == 5535 || obj.bib == 5535) {
-                            foundTeam = obj;
-                            return;
-                        }
-                        // Otherwise, loop through its properties
-                        for (let key in obj) {
-                            if (obj.hasOwnProperty(key)) {
-                                searchTeams(obj[key]);
-                            }
-                        }
-                    }
+                if (json && json.success && json.data) {
+                    teamData = json.data;
+                } else if (json && json.ll) {
+                    teamData = json;
                 }
 
-                searchTeams(json);
+                if (teamData && teamData.ll) {
+                    const [lat, lon] = teamData.ll.split(',').map(Number);
+                    const teamName = teamData.n || 'Team 5535';
 
-                if (foundTeam && foundTeam.ll) {
-                    const [lat, lon] = foundTeam.ll.split(',').map(Number);
-
-                    document.getElementById('team-name').innerText = `${foundTeam.n || 'Team 5535'} (#5535)`;
-                    document.getElementById('team-status').innerText = `Status: Live (30s polling)`;
+                    document.getElementById('team-name').innerText = `${teamName} (#${teamData.r || 5535})`;
+                    document.getElementById('team-status').innerText = `Status: Live (Laptop Relay)`;
                     document.getElementById('team-coords').innerText = `Lat/Lon: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 
                     if (marker) {
                         marker.setLatLng([lat, lon]);
                     } else {
                         marker = L.marker([lat, lon]).addTo(map)
-                            .bindPopup(`<b>${foundTeam.n || 'Team 5535'}</b><br>Team 5535`)
+                            .bindPopup(`<b>${teamName}</b><br>Team 5535`)
                             .openPopup();
                     }
                 } else {
-                    document.getElementById('team-status').innerText = "Team 5535 data parsing...";
+                    document.getElementById('team-status').innerText = "Waiting for valid coordinate data...";
                 }
             } catch (error) {
-                console.error("Error fetching live data via worker:", error);
-                document.getElementById('team-status').innerText = "Connection error. Retrying in 30s...";
+                console.error("Error reading local relay file:", error);
+                document.getElementById('team-status').innerText = "Waiting for initial laptop sync...";
             }
         }
 
-        // Run immediately on load, then repeat every 30 seconds like clockwork
+        // Run immediately on load, then repeat every 30 seconds
         updateTracker();
         setInterval(updateTracker, 30000);
     </script>
