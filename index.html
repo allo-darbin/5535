@@ -17,6 +17,8 @@
         .info-box h3 { margin: 0 0 5px 0; font-size: 16px; color: #1a73e8; }
         .info-box p { margin: 3px 0; font-size: 13px; color: #444; }
         .toggle-container { margin-top: 10px; font-size: 13px; border-top: 1px solid #eee; padding-top: 8px; }
+        .leaflet-popup-content a { color: #1a73e8; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 5px; }
+        .leaflet-popup-content a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -70,6 +72,7 @@
                 
                 if (json.success && Array.isArray(json.data)) {
                     json.data.forEach(cp => {
+                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${cp.la},${cp.lo}`;
                         const m = L.circleMarker([cp.la, cp.lo], {
                             radius: 6,
                             color: cp.c || '#f44034',
@@ -77,6 +80,7 @@
                             fillOpacity: 0.8
                         })
                         .addTo(map)
+                        .bindPopup(`<b>${cp.n}</b><br><a href="${mapsUrl}" target="_blank">📍 Open in Google Maps</a>`)
                         .bindTooltip(`<b>${cp.n}</b>`, { permanent: true, direction: 'top', offset: [0, -5] });
                         
                         labelLayers.push(m);
@@ -96,6 +100,7 @@
                 
                 if (json.success && Array.isArray(json.data)) {
                     json.data.forEach(cp => {
+                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${cp.lat},${cp.lon}`;
                         const m = L.circleMarker([cp.lat, cp.lon], {
                             radius: 7,
                             color: '#9c27b0', // Purple color for cheer spots
@@ -103,7 +108,7 @@
                             fillOpacity: 0.9
                         })
                         .addTo(map)
-                        .bindPopup(`<b>${cp.name}</b><br>${cp.note || ''}`)
+                        .bindPopup(`<b>${cp.name}</b><br>${cp.note || ''}<br><a href="${mapsUrl}" target="_blank">📍 Open in Google Maps</a>`)
                         .bindTooltip(`<b>${cp.name}</b>`, { permanent: true, direction: 'bottom', offset: [0, 5] });
                         
                         labelLayers.push(m);
@@ -150,14 +155,18 @@
                 if (teamData && teamData.ll) {
                     const [lat, lon] = teamData.ll.split(',').map(Number);
                     const teamName = teamData.n || 'Team 5535';
+                    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+                    const popupContent = `<b>${teamName}</b> (#${teamData.r || 5535})<br>Lat/Lon: ${lat.toFixed(4)}, ${lon.toFixed(4)}<br><a href="${mapsUrl}" target="_blank">📍 Open in Google Maps</a>`;
 
                     document.getElementById('team-name').innerText = `${teamName} (#${teamData.r || 5535})`;
+                    document.getElementById('team-status').innerText = `Status: Live (Laptop Relay)`;
                     document.getElementById('team-coords').innerText = `Lat/Lon: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 
                     if (marker) {
                         marker.setLatLng([lat, lon]);
+                        marker.getPopup().setContent(popupContent);
                     } else {
-                        marker = L.marker([lat, lon]).addTo(map);
+                        marker = L.marker([lat, lon]).addTo(map).bindPopup(popupContent);
                     }
                 } else {
                     document.getElementById('team-status').innerText = "Waiting for valid coordinate data...";
