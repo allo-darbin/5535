@@ -32,8 +32,11 @@
 
     <!-- Leaflet JS CDN -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Omnivore CDN (Used to parse and draw KML files) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
+    
     <script>
-        // 1. Initialize Map centered around Stirling / Bannockburn area
+        // 1. Initialize Map
         const map = L.map('map').setView([56.122, -3.910], 13);
 
         // Add OpenStreetMap tile layer
@@ -43,24 +46,20 @@
         }).addTo(map);
 
         let marker = null;
-        let routeLine = null;
 
-        // Sample route coordinates extracted from the KML file
-        const routeCoords = [
-            [56.12233, -3.91031], [56.12187, -3.91035], [56.12134, -3.91019],
-            [56.12124, -3.91001], [56.11898, -3.90988], [56.11822, -3.91122],
-            [56.11759, -3.91097], [56.11732, -3.91133], [56.11702, -3.91090],
-            [56.11677, -3.91100], [56.11655, -3.91149], [56.11642, -3.91242],
-            [56.11623, -3.91266], [56.11204, -3.91505], [56.11174, -3.91336]
-        ];
+        // 2. Load the full KML route file directly from your repository
+        const routeLayer = omnivore.kml('route.kml')
+            .on('ready', function() {
+                // Style the entire KML route path once loaded
+                this.setStyle({ color: '#2094f3', weight: 5, opacity: 0.8 });
+                // Automatically zoom and center the map to fit the entire race course bounds
+                map.fitBounds(this.getBounds());
+            })
+            .addTo(map);
 
-        // Draw the static route polyline on the map
-        routeLine = L.polyline(routeCoords, { color: '#2094f3', weight: 5, opacity: 0.8 }).addTo(map);
-
-        // 2. Function to fetch JSON and update team 5535's position
+        // 3. Function to fetch JSON and update team 5535's position
         async function updateTracker() {
             try {
-                // Route through a public CORS proxy to allow fetching external tracking data from GitHub Pages
                 const targetUrl = 'https://live.opentracking.co.uk/26ww50km/data/teams-p26.json';
                 const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
                 
@@ -70,7 +69,6 @@
                 if (json.success && json.data) {
                     let foundTeam = null;
                     
-                    // Search through the category groups to locate competitor 5535
                     json.data.forEach(group => {
                         group.teams.forEach(team => {
                             if (team.r === 5535) {
@@ -80,22 +78,18 @@
                     });
 
                     if (foundTeam) {
-                        // Extract latitude and longitude from the "ll" key
                         const [lat, lon] = foundTeam.ll.split(',').map(Number);
 
-                        // Update the text box overlay
                         document.getElementById('team-name').innerText = `${foundTeam.n} (#${foundTeam.r})`;
                         document.getElementById('team-status').innerText = `Group: ${foundTeam.g} (${foundTeam.tg})`;
                         document.getElementById('team-coords').innerText = `Lat/Lon: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
 
-                        // Update or initialize the map marker pin
                         if (marker) {
                             marker.setLatLng([lat, lon]);
                         } else {
                             marker = L.marker([lat, lon]).addTo(map)
                                 .bindPopup(`<b>${foundTeam.n}</b><br>Team 5535 Active Marker`)
                                 .openPopup();
-                            map.setView([lat, lon], 14); // Center map on runner on first load
                         }
                     } else {
                         document.getElementById('team-status').innerText = "Team 5535 not found in feed.";
@@ -107,10 +101,8 @@
             }
         }
 
-        // Run immediately on page load
+        // Run immediately and poll every 30 seconds
         updateTracker();
-
-        // Refresh data every 30 seconds
         setInterval(updateTracker, 30000);
     </script>
 </body>
