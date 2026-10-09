@@ -1,46 +1,91 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Team 5535 Live Tracker</title>
-    <!-- Leaflet CSS CDN -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: Arial, sans-serif; }
-        #map { height: 100vh; width: 100vw; }
-        .info-box {
-            position: absolute; top: 15px; right: 15px; z-index: 1000;
-            background: white; padding: 12px 18px; border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2); max-width: 260px;
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: Arial, sans-serif;
         }
-        .info-box h3 { margin: 0 0 5px 0; font-size: 16px; color: #1a73e8; }
-        .info-box p { margin: 3px 0; font-size: 13px; color: #444; }
-        .toggle-container { margin-top: 10px; font-size: 13px; border-top: 1px solid #eee; padding-top: 8px; }
-        .leaflet-popup-content a { color: #1a73e8; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 5px; }
-        .leaflet-popup-content a:hover { text-decoration: underline; }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            max-width: 280px;
+            font-size: 13px;
+        }
+
+        .info-box p {
+            margin: 6px 0 0;
+            color: #444;
+        }
+
+        .leaflet-popup-content a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .leaflet-popup-content a:hover {
+            text-decoration: underline;
+        }
+
+        .racer-icon {
+            font-size: 30px;
+            line-height: 36px;
+            text-align: center;
+            filter: drop-shadow(1px 2px 2px #555);
+        }
     </style>
 </head>
-<body>
 
-    <!-- Floating Info Panel with Label Toggle -->
+<body>
     <div class="info-box">
         <label>
-            <input type="checkbox" id="toggle-labels" checked onchange="toggleLabels()"> Show Marker Labels
+            <input
+                type="checkbox"
+                id="toggle-labels"
+                checked
+                onchange="toggleLabels()"
+            >
+            Show Marker Labels
         </label>
+
+        <p id="team-name">Team 5535 — waiting for data...</p>
+        <p id="team-coords">Coordinates: waiting...</p>
+        <p id="team-status">Connecting to live tracker...</p>
     </div>
 
-    <!-- Map Container -->
     <div id="map"></div>
 
-    <!-- Leaflet JS CDN -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Omnivore CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
-    
+
     <script>
-        // 1. Initialize Map
-        const map = L.map('map').setView([56.122, -3.910], 13);
+        // 1. Initialise the map.
+        const map = L.map('map').setView([56.122185, -3.91031], 13);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -48,78 +93,156 @@
         }).addTo(map);
 
         let marker = null;
-        let labelLayers = []; // Array to track tooltip layers for toggling
+        let labelLayers = [];
+        let firstPositionReceived = false;
 
-        // 2. Load the KML route file from your repository
-        const routeLayer = omnivore.kml('route.kml')
-            .on('ready', function() {
-                this.setStyle({ color: '#2094f3', weight: 5, opacity: 0.8 });
-                map.fitBounds(this.getBounds());
+        const teamNameElement = document.getElementById('team-name');
+        const teamCoordsElement = document.getElementById('team-coords');
+        const teamStatusElement = document.getElementById('team-status');
+
+        // 2. Load the KML route.
+        omnivore.kml('route.kml')
+            .on('ready', function () {
+                this.setStyle({
+                    color: '#2094f3',
+                    weight: 5,
+                    opacity: 0.8
+                });
+
+                if (!firstPositionReceived && this.getBounds().isValid()) {
+                    map.fitBounds(this.getBounds());
+                }
+            })
+            .on('error', function (error) {
+                console.error('Could not load route.kml:', error);
             })
             .addTo(map);
 
-        // 3. Load Official Checkpoints from checkpoints-p26.json
+        // 3. Load official checkpoints.
         async function loadCheckpoints() {
             try {
-                const response = await fetch('checkpoints-p26.json');
-                if (!response.ok) throw new Error('Failed to load checkpoints');
+                const response = await fetch(
+                    'checkpoints-p26.json?t=' + Date.now(),
+                    { cache: 'no-store' }
+                );
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
                 const json = await response.json();
-                
+
                 if (json.success && Array.isArray(json.data)) {
                     json.data.forEach(cp => {
-                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${cp.la},${cp.lo}`;
-                        const m = L.circleMarker([cp.la, cp.lo], {
+                        const lat = Number(cp.la);
+                        const lon = Number(cp.lo);
+
+                        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                            return;
+                        }
+
+                        const mapsUrl =
+                            `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+                        const checkpoint = L.circleMarker([lat, lon], {
                             radius: 6,
                             color: cp.c || '#f44034',
                             fillColor: cp.c || '#f44034',
                             fillOpacity: 0.8
                         })
                         .addTo(map)
-                        .bindPopup(`<b>${cp.n}</b><br><a href="${mapsUrl}" target="_blank">📍 Open in Google Maps</a>`)
-                        .bindTooltip(`<b>${cp.n}</b>`, { permanent: true, direction: 'top', offset: [0, -5] });
-                        
-                        labelLayers.push(m);
+                        .bindPopup(
+                            `<b>${cp.n || 'Checkpoint'}</b><br>` +
+                            `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
+                            `📍 Open in Google Maps</a>`
+                        )
+                        .bindTooltip(
+                            `<b>${cp.n || 'Checkpoint'}</b>`,
+                            {
+                                permanent: true,
+                                direction: 'top',
+                                offset: [0, -5]
+                            }
+                        );
+
+                        labelLayers.push(checkpoint);
                     });
+
+                    toggleLabels();
                 }
             } catch (error) {
-                console.error("Error loading checkpoints:", error);
+                console.error('Error loading checkpoints:', error);
             }
         }
 
-        // 4. Load Manual Cheerpoints from cheerpoints.json
+        // 4. Load optional manual cheerpoints.
         async function loadCheerpoints() {
             try {
-                const response = await fetch('cheerpoints.json?t=' + new Date().getTime());
-                if (!response.ok) return; // Optional file, ignore if missing
+                const response = await fetch(
+                    'cheerpoints.json?t=' + Date.now(),
+                    { cache: 'no-store' }
+                );
+
+                if (!response.ok) {
+                    return;
+                }
+
                 const json = await response.json();
-                
+
                 if (json.success && Array.isArray(json.data)) {
                     json.data.forEach(cp => {
-                        const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${cp.lat},${cp.lon}`;
-                        const m = L.circleMarker([cp.lat, cp.lon], {
+                        const lat = Number(cp.lat);
+                        const lon = Number(cp.lon);
+
+                        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                            return;
+                        }
+
+                        const mapsUrl =
+                            `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+                        const cheerpoint = L.circleMarker([lat, lon], {
                             radius: 7,
-                            color: '#9c27b0', // Purple color for cheer spots
+                            color: '#9c27b0',
                             fillColor: '#ba68c8',
                             fillOpacity: 0.9
                         })
                         .addTo(map)
-                        .bindPopup(`<b>${cp.name}</b><br>${cp.note || ''}<br><a href="${mapsUrl}" target="_blank">📍 Open in Google Maps</a>`)
-                        .bindTooltip(`<b>${cp.name}</b>`, { permanent: true, direction: 'bottom', offset: [0, 5] });
-                        
-                        labelLayers.push(m);
+                        .bindPopup(
+                            `<b>${cp.name || 'Cheerpoint'}</b><br>` +
+                            `${cp.note || ''}<br>` +
+                            `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
+                            `📍 Open in Google Maps</a>`
+                        )
+                        .bindTooltip(
+                            `<b>${cp.name || 'Cheerpoint'}</b>`,
+                            {
+                                permanent: true,
+                                direction: 'bottom',
+                                offset: [0, 5]
+                            }
+                        );
+
+                        labelLayers.push(cheerpoint);
                     });
+
+                    toggleLabels();
                 }
             } catch (error) {
-                console.log("No cheerpoints.json found or invalid format yet.");
+                console.error('Error loading cheerpoints:', error);
             }
         }
 
-        loadCheckpoints();
-        loadCheerpoints();
-
-        // 5. Toggle function for labels
+        // 5. Toggle checkpoint and cheerpoint labels.
         function toggleLabels() {
-            const show = document.getElementById('toggle-labels').checked;
+            const checkbox = document.getElementById('toggle-labels');
+
+            if (!checkbox) {
+                return;
+            }
+
+            const show = checkbox.checked;
+
             labelLayers.forEach(layer => {
                 if (show) {
                     layer.openTooltip();
@@ -129,47 +252,110 @@
             });
         }
 
-        // 6. Function to fetch local JSON relay file updated by your laptop script every 30 seconds
+        // 6. Fetch and display the latest racer position.
         async function updateTracker() {
             try {
-                const response = await fetch('team5535_live.json?t=' + new Date().getTime());
-                
+                const response = await fetch(
+                    'team5535_live.json?t=' + Date.now(),
+                    { cache: 'no-store' }
+                );
+
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP ${response.status}`);
                 }
-                
+
                 const json = await response.json();
-                let teamData = null;
 
-                if (json && json.success && json.data) {
-                    teamData = json.data;
-                } else if (json && json.ll) {
-                    teamData = json;
+                // Python writes the complete API response:
+                // { type: "details", success: true, data: { ll: "lat,lon" } }
+                if (
+                    !json ||
+                    json.success !== true ||
+                    !json.data ||
+                    typeof json.data.ll !== 'string'
+                ) {
+                    throw new Error(
+                        'Unexpected tracking JSON structure or missing coordinates'
+                    );
                 }
 
-                if (teamData && teamData.ll) {
-                    const [lat, lon] = teamData.ll.split(',').map(Number);
-                    const teamName = teamData.n || 'Team 5535';
-                    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-                    const popupContent = `<b>${teamName}</b> (#${teamData.r || 5535})<br>Lat/Lon: ${lat.toFixed(4)}, ${lon.toFixed(4)}<br><a href="${mapsUrl}" target="_blank">📍 Open in Google Maps</a>`;
+                const teamData = json.data;
+                const parts = teamData.ll.split(',').map(Number);
 
-                    document.getElementById('team-name').innerText = `${teamName} (#${teamData.r || 5535})`;
-                    document.getElementById('team-coords').innerText = `Lat/Lon: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                if (
+                    parts.length !== 2 ||
+                    !Number.isFinite(parts[0]) ||
+                    !Number.isFinite(parts[1]) ||
+                    Math.abs(parts[0]) > 90 ||
+                    Math.abs(parts[1]) > 180
+                ) {
+                    throw new Error(
+                        'Invalid latitude/longitude: ' + teamData.ll
+                    );
+                }
 
-                    if (marker) {
-                        marker.setLatLng([lat, lon]);
-                        marker.getPopup().setContent(popupContent);
-                    } else {
-                        marker = L.marker([lat, lon]).addTo(map).bindPopup(popupContent);
-                    }
+                const lat = parts[0];
+                const lon = parts[1];
+                const name = teamData.n || 'Team 5535';
+                const raceNumber = teamData.r || 5535;
+
+                const mapsUrl =
+                    `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+                const popupContent =
+                    `<b>${name} (#${raceNumber})</b><br>` +
+                    `Lat/Lon: ${lat.toFixed(6)}, ${lon.toFixed(6)}<br>` +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
+                    `📍 Open in Google Maps</a>`;
+
+                // Update the visible information panel.
+                teamNameElement.textContent = `${name} (#${raceNumber})`;
+                teamCoordsElement.textContent =
+                    `Lat/Lon: ${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                teamStatusElement.textContent =
+                    `Last successful fetch: ${new Date().toLocaleTimeString()}`;
+
+                // Log coordinates on every successful fetch,
+                // even if the position has not changed.
+                console.log(
+                    `[${new Date().toLocaleTimeString()}] ` +
+                    `Team ${raceNumber} coordinates: ${lat}, ${lon}`
+                );
+
+                // Create the marker once; update it thereafter.
+                if (marker) {
+                    marker.setLatLng([lat, lon]);
+                    marker.setPopupContent(popupContent);
                 } else {
-                    document.getElementById('team-status').innerText = "Waiting for valid coordinate data...";
+                    marker = L.marker([lat, lon], {
+                        icon: L.divIcon({
+                            className: '',
+                            html: '<div class="racer-icon">🏃</div>',
+                            iconSize: [36, 36],
+                            iconAnchor: [18, 18],
+                            popupAnchor: [0, -18]
+                        }),
+                        zIndexOffset: 1000
+                    })
+                    .addTo(map)
+                    .bindPopup(popupContent);
+
+                    // Centre on the racer when the first position arrives.
+                    firstPositionReceived = true;
+                    map.setView([lat, lon], 15);
+                    marker.openPopup();
                 }
+
             } catch (error) {
-                console.error("Error reading local relay file:", error);
-                document.getElementById('team-status').innerText = "Waiting for initial laptop sync...";
+                console.error('Error updating racer marker:', error);
+                teamStatusElement.textContent =
+                    'Tracking error: ' + error.message;
             }
         }
+
+        // 7. Start the tracker.
+        loadCheckpoints();
+        loadCheerpoints();
 
         updateTracker();
         setInterval(updateTracker, 30000);
