@@ -87,10 +87,6 @@
         let labelLayers = [];
         let firstPositionReceived = false;
 
-        const teamNameElement = document.getElementById('team-name');
-        const teamCoordsElement = document.getElementById('team-coords');
-        const teamStatusElement = document.getElementById('team-status');
-
         // 2. Load the KML route.
         omnivore.kml('route.kml')
             .on('ready', function () {
@@ -339,23 +335,11 @@
         }
 
         // Allow tapping a marker again to close its popup.
-        map.on('click', function (e) {
-            map.eachLayer(function (layer) {
-                if (
-                    layer instanceof L.Marker ||
-                    layer instanceof L.CircleMarker
-                ) {
-                    const popup = layer.getPopup();
+                // Allow tapping the map to close open popups.
+        map.on('click', function () {
+            map.closePopup();
+        });
 
-                    if (popup && layer.isPopupOpen()) {
-                        const markerLatLng = layer.getLatLng();
-
-                        if (map.distance(e.latlng, markerLatLng) < 20) {
-                            layer.closePopup();
-                        }
-                    }
-                }
-            });
 
         // 7. Start the tracker.
         loadCheckpoints();
