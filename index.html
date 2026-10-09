@@ -338,6 +338,25 @@
             }
         }
 
+        // Allow tapping a marker again to close its popup.
+        map.on('click', function (e) {
+            map.eachLayer(function (layer) {
+                if (
+                    layer instanceof L.Marker ||
+                    layer instanceof L.CircleMarker
+                ) {
+                    const popup = layer.getPopup();
+
+                    if (popup && layer.isPopupOpen()) {
+                        const markerLatLng = layer.getLatLng();
+
+                        if (map.distance(e.latlng, markerLatLng) < 20) {
+                            layer.closePopup();
+                        }
+                    }
+                }
+            });
+
         // 7. Start the tracker.
         loadCheckpoints();
         loadCheerpoints();
