@@ -42,7 +42,7 @@
             color: #444;
         }
 
-        /* Prevent layer control from overlapping the zoom +/- buttons */
+        /* Prevent layer control from overlapping zoom +/- buttons */
         .leaflet-top.leaflet-left .leaflet-control-layers {
             margin-top: 10px;
         }
@@ -85,10 +85,15 @@
 
 <body>
     <div class="info-box">
-        <label style="display: block; margin-bottom: 8px;">
-            <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
-            Show Marker Labels
-        </label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label style="margin: 0; cursor: pointer;">
+                <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
+                Show Marker Labels
+            </label>
+            <button id="fullscreenBtn" onclick="toggleFullScreen()" style="padding: 3px 8px; font-size: 11px; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background: #f8f9fa;">
+                ⛶ Fullscreen
+            </button>
+        </div>
         <div style="border-top: 1px solid #eee; padding-top: 8px;">
             <label for="timeOffset" style="display: block; font-size: 11px; margin-bottom: 3px; color: #666;">Time Offset (mins):</label>
             <div style="display: flex; gap: 4px; align-items: center;">
@@ -110,6 +115,32 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <script>
+        // 0. Fullscreen Toggle Helper
+        function toggleFullScreen() {
+            const btn = document.getElementById('fullscreenBtn');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    if (btn) btn.innerText = 'Exit Fullscreen';
+                }).catch(err => {
+                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
+                });
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen().then(() => {
+                        if (btn) btn.innerText = '⛶ Fullscreen';
+                    });
+                }
+            }
+        }
+
+        // Listen for ESC key or external full-screen exits
+        document.addEventListener('fullscreenchange', () => {
+            const btn = document.getElementById('fullscreenBtn');
+            if (btn) {
+                btn.innerText = document.fullscreenElement ? 'Exit Fullscreen' : '⛶ Fullscreen';
+            }
+        });
+
         // 1. Initialise base maps and layer switcher.
         const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -504,32 +535,4 @@
                         }),
                         zIndexOffset: 1000
                     })
-                    .addTo(map)
-                    .bindPopup(popupContent);
-
-                    firstPositionReceived = true;
-                    map.setView([lat, lon], 15);
-                }
-
-            } catch (error) {
-                console.error('Error updating racer marker:', error);
-                const lastUpdateEl = document.getElementById('last-update');
-                if (lastUpdateEl) {
-                    lastUpdateEl.innerText = `Update failed (${new Date().toLocaleTimeString()})`;
-                }
-            }
-        }
-
-        map.on('click', function () {
-            map.closePopup();
-        });
-
-        // 7. Start everything up.
-        loadCheckpoints();
-        loadCheerpoints();
-
-        updateTracker();
-        setInterval(updateTracker, 30000);
-    </script>
-</body>
-</html>
+                   
