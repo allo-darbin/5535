@@ -80,15 +80,31 @@
             text-align: center;
             filter: drop-shadow(1px 2px 2px #555);
         }
+
+        .fullscreen-btn {
+            padding: 3px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background: #f8f9fa;
+        }
+
+        .fullscreen-btn:hover {
+            background: #e2e6ea;
+        }
     </style>
 </head>
 
 <body>
     <div class="info-box">
-        <label style="display: block; margin-bottom: 8px;">
-            <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
-            Show Marker Labels
-        </label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label style="cursor: pointer; margin: 0;">
+                <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
+                Show Marker Labels
+            </label>
+            <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
+        </div>
         <div style="border-top: 1px solid #eee; padding-top: 8px;">
             <label for="timeOffset" style="display: block; font-size: 11px; margin-bottom: 3px; color: #666;">Time Offset (mins):</label>
             <div style="display: flex; gap: 4px; align-items: center;">
@@ -110,6 +126,44 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <script>
+        // Fullscreen toggle handler with browser compatibility checks
+        function toggleFullScreen() {
+            const btn = document.getElementById('fullscreenBtn');
+            const doc = document;
+            const elem = document.documentElement;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(() => {});
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) {
+                    elem.mozRequestFullScreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                }
+            } else {
+                if (doc.exitFullscreen) {
+                    doc.exitFullscreen().catch(() => {});
+                } else if (doc.msExitFullscreen) {
+                    doc.msExitFullscreen();
+                } else if (doc.mozCancelFullScreen) {
+                    doc.mozCancelFullScreen();
+                } else if (doc.webkitExitFullscreen) {
+                    doc.webkitExitFullscreen();
+                }
+            }
+        }
+
+        // Update button text when state changes
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                const btn = document.getElementById('fullscreenBtn');
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+                if (btn) btn.innerText = isFS ? 'Exit Fullscreen' : '⛶ Fullscreen';
+            });
+        });
+
         // 1. Initialise base maps and layer switcher.
         const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
