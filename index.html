@@ -93,6 +93,7 @@
         let checkpointLayers = [];
         let cheerpointLayers = [];
         let rawCheckpointData = [];
+        let rawCheerpointData = [];
         let firstPositionReceived = false;
 
         // 2. Load the KML route.
@@ -129,15 +130,11 @@
 
         // Render checkpoints taking current time offset into account
         function renderCheckpoints() {
-            // Remove existing checkpoint markers from map
             checkpointLayers.forEach(layer => map.removeLayer(layer));
             checkpointLayers = [];
 
             const offsetInput = document.getElementById('timeOffset');
             const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
-            
-            // Save offset to localStorage
-            localStorage.setItem('checkpointTimeOffset', offsetMinutes);
 
             rawCheckpointData.forEach(cp => {
                 const lat = Number(cp.la);
@@ -147,7 +144,6 @@
                     return;
                 }
 
-                // Adjust time in name if it starts with a 4-digit time prefix (e.g. "0855")
                 let displayName = cp.n || 'Checkpoint';
                 const match = displayName.match(/^(\d{4})(\s.*)$/);
                 if (match) {
@@ -181,13 +177,72 @@
 
                 checkpointLayers.push(checkpoint);
             });
+        }
 
-            toggleLabels();
+        // Render cheerpoints taking current time offset into account
+        function renderCheerpoints() {
+            cheerpointLayers.forEach(layer => map.removeLayer(layer));
+            cheerpointLayers = [];
+
+            const offsetInput = document.getElementById('timeOffset');
+            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
+
+            rawCheerpointData.forEach(cp => {
+                const lat = Number(cp.lat);
+                const lon = Number(cp.lon);
+
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                    return;
+                }
+
+                let displayName = cp.name || 'Cheerpoint';
+                const match = displayName.match(/^(\d{4})(\s.*)$/);
+                if (match) {
+                    const originalTime = match[1];
+                    const textDescription = match[2];
+                    displayName = adjustTimeString(originalTime, offsetMinutes) + textDescription;
+                }
+
+                const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
+
+                const cheerpoint = L.circleMarker([lat, lon], {
+                    radius: 7,
+                    color: '#9c27b0',
+                    fillColor: '#ba68c8',
+                    fillOpacity: 0.9
+                })
+                .addTo(map)
+                .bindPopup(
+                    `<b>${displayName}</b><br>` +
+                    `${cp.note || ''}<br>` +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
+                    `📍 Open in Google Maps</a>`
+                )
+                .bindTooltip(
+                    `<b>${displayName}</b>`,
+                    {
+                        permanent: true,
+                        direction: 'bottom',
+                        offset: [0, 5]
+                    }
+                );
+
+                cheerpointLayers.push(cheerpoint);
+            });
         }
 
         // Triggered when clicking "Apply" button
         function applyTimeOffset() {
+            const offsetInput = document.getElementById('timeOffset');
+            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
+            
+            // Save offset to localStorage
+            localStorage.setItem('checkpointTimeOffset', offsetMinutes);
+
+            // Re-render both markers
             renderCheckpoints();
+            renderCheerpoints();
+            toggleLabels();
         }
 
         // 3. Load official checkpoints.
@@ -206,7 +261,7 @@
 
                 if (json.success && Array.isArray(json.data)) {
                     rawCheckpointData = json.data;
-
+                    
                     // Load saved offset from localStorage on startup if available
                     const savedOffset = localStorage.getItem('checkpointTimeOffset');
                     if (savedOffset !== null) {
@@ -215,6 +270,7 @@
                     }
 
                     renderCheckpoints();
+                    toggleLabels();
                 }
             } catch (error) {
                 console.error('Error loading checkpoints:', error);
@@ -236,41 +292,8 @@
                 const json = await response.json();
 
                 if (json.success && Array.isArray(json.data)) {
-                    json.data.forEach(cp => {
-                        const lat = Number(cp.lat);
-                        const lon = Number(cp.lon);
-
-                        if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-                            return;
-                        }
-
-                        const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-
-                        const cheerpoint = L.circleMarker([lat, lon], {
-                            radius: 7,
-                            color: '#9c27b0',
-                            fillColor: '#ba68c8',
-                            fillOpacity: 0.9
-                        })
-                        .addTo(map)
-                        .bindPopup(
-                            `<b>${cp.name || 'Cheerpoint'}</b><br>` +
-                            `${cp.note || ''}<br>` +
-                            `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
-                            `📍 Open in Google Maps</a>`
-                        )
-                        .bindTooltip(
-                            `<b>${cp.name || 'Cheerpoint'}</b>`,
-                            {
-                                permanent: true,
-                                direction: 'bottom',
-                                offset: [0, 5]
-                            }
-                        );
-
-                        cheerpointLayers.push(cheerpoint);
-                    });
-
+                    rawCheerpointData = json.data;
+                    renderCheerpoints();
                     toggleLabels();
                 }
             } catch (error) {
