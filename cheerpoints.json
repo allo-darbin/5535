@@ -19,13 +19,13 @@
     },
     {
       "name": "King's Park",
-      "lat": 56.113886,
-      "lon": -3.9541579
-    },      
+      "lat": 56.1148658,
+      "lon": -3.9476398
+    },     
     {
       "name": "Albert Halls",
-      "lat": 56.1224277,
-      "lon": -3.9614325
+      "lat": 56.1185892,
+      "lon": -3.9448021
     },
     {
       "name": "West Bridge",
@@ -41,8 +41,6 @@
       "name": "East Bridge",
       "lat": 56.129397,
       "lon": -3.935099
-
-
     },
     {
       "name": "Castle Vale",
@@ -61,8 +59,8 @@
     }, 
     {
       "name": "Wallace Monument",
-      "lat": 56.139806,
-      "lon": -3.9313844
+      "lat": 56.1387025,
+      "lon": -3.9187577
     }
   ]
 }
