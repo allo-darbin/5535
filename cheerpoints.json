@@ -2,65 +2,72 @@
   "success": true,
   "data": [
     {
-      "name": "Bannockburn Main St",
+      "name": "0805 Bannockburn Main St",
       "lat": 56.0921456,
       "lon": -3.9176295
     },
     {
-      "name": "Bowling Club",
+      "name": "0820 Bowling Club",
       "lat": 56.0938723,
       "lon": -3.9414038
     },
       
     {
-      "name": "Cambusbarron",
+      "name": "0840 Cambusbarron",
       "lat": 56.1081902,
       "lon": -3.9778872
     },
     {
-      "name": "King's Park",
+      "name": "0905 King's Park",
       "lat": 56.1133741,
       "lon": -3.9474402
     }, 
     {
-      "name": "Albert Halls",
+      "name": "0925 Albert Halls",
       "lat": 56.1185892,
       "lon": -3.9448021
     },
     {
-      "name": "West Bridge",
+      "name": "0940 West Bridge",
       "lat": 56.128314,
       "lon": -3.938488
     },
       {
-      "name": "Opposite Castle Vale",
+      "name": "0955 pposite Castle Vale",
       "lat": 56.1402036,
       "lon": -3.9532177
     },
     {
-      "name": "East Bridge",
+      "name": "1020 East Bridge",
       "lat": 56.129397,
       "lon": -3.935099
     },
     {
-      "name": "Castle Vale",
+      "name": "1040 Castle Vale",
       "lat": 56.1393385,
       "lon": -3.9499411
     },
         {
-      "name": "Sunnylaw",
+      "name": "1100 Sunnylaw",
       "lat": 56.1594811,
       "lon": -3.9523063
     },
         {
-      "name": "Dumyat",
+      "name": "1115 Dumyat",
       "lat": 56.1581074,
       "lon": -3.9172064
     }, 
     {
-      "name": "Wallace Monument",
+      "name": "1140 Wallace Monument",
       "lat": 56.1387025,
       "lon": -3.9187577
     }
+    {
+      "name": "1150 Wallace Monument",
+      "lat": 56.136684,
+      "lon": -3.919597
+    }
+
+
   ]
 }
