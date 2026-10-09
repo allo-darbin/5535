@@ -57,42 +57,53 @@
         // 3. Function to fetch live JSON via your Cloudflare Worker every 30 seconds
         async function updateTracker() {
             try {
-                // PASTE YOUR CLOUDFLARE WORKER URL INSIDE THE QUOTES BELOW:
                 const workerUrl = 'https://race-proxy.stuart-28b.workers.dev/';
                 
                 const response = await fetch(workerUrl);
                 const json = await response.json();
 
-                if (json && json.data) {
-                    let foundTeam = null;
-                    
-                    json.data.forEach(group => {
-                        if (group.teams) {
-                            group.teams.forEach(team => {
-                                if (team.r === 5535 || team.r === "5535") {
-                                    foundTeam = team;
-                                }
-                            });
+                let foundTeam = null;
+
+                // Robust recursive or flat search to handle OpenTracking's exact JSON layout
+                function searchTeams(obj) {
+                    if (!obj) return;
+                    if (Array.isArray(obj)) {
+                        for (let item of obj) {
+                            searchTeams(item);
                         }
-                    });
-
-                    if (foundTeam && foundTeam.ll) {
-                        const [lat, lon] = foundTeam.ll.split(',').map(Number);
-
-                        document.getElementById('team-name').innerText = `${foundTeam.n} (#${foundTeam.r})`;
-                        document.getElementById('team-status').innerText = `Status: Live (30s polling)`;
-                        document.getElementById('team-coords').innerText = `Lat/Lon: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-
-                        if (marker) {
-                            marker.setLatLng([lat, lon]);
-                        } else {
-                            marker = L.marker([lat, lon]).addTo(map)
-                                .bindPopup(`<b>${foundTeam.n}</b><br>Team 5535`)
-                                .openPopup();
+                    } else if (typeof obj === 'object') {
+                        // Check if this object represents team 5535
+                        if (obj.r == 5535 || obj.bib == 5535) {
+                            foundTeam = obj;
+                            return;
                         }
-                    } else {
-                        document.getElementById('team-status').innerText = "Team 5535 not found in feed";
+                        // Otherwise, loop through its properties
+                        for (let key in obj) {
+                            if (obj.hasOwnProperty(key)) {
+                                searchTeams(obj[key]);
+                            }
+                        }
                     }
+                }
+
+                searchTeams(json);
+
+                if (foundTeam && foundTeam.ll) {
+                    const [lat, lon] = foundTeam.ll.split(',').map(Number);
+
+                    document.getElementById('team-name').innerText = `${foundTeam.n || 'Team 5535'} (#5535)`;
+                    document.getElementById('team-status').innerText = `Status: Live (30s polling)`;
+                    document.getElementById('team-coords').innerText = `Lat/Lon: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+
+                    if (marker) {
+                        marker.setLatLng([lat, lon]);
+                    } else {
+                        marker = L.marker([lat, lon]).addTo(map)
+                            .bindPopup(`<b>${foundTeam.n || 'Team 5535'}</b><br>Team 5535`)
+                            .openPopup();
+                    }
+                } else {
+                    document.getElementById('team-status').innerText = "Team 5535 data parsing...";
                 }
             } catch (error) {
                 console.error("Error fetching live data via worker:", error);
