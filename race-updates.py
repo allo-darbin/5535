@@ -1,4 +1,4 @@
-
+# run as python race-updates.py
 import json
 import time
 import subprocess
@@ -56,6 +56,8 @@ def fetch_and_commit():
         ):
             log("Unexpected response structure; keeping previous data.")
             return
+        coordinates = data["data"].get("ll")
+        log(f"Live coordinates: {coordinates}")
 
         # 3. Write safely without risking the previous valid file
         with open(temp_file, "w", encoding="utf-8") as f:
