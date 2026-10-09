@@ -115,30 +115,42 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <script>
-        // 0. Fullscreen Toggle Helper
+        // Safe Fullscreen Toggle Helper
         function toggleFullScreen() {
-            const btn = document.getElementById('fullscreenBtn');
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().then(() => {
-                    if (btn) btn.innerText = 'Exit Fullscreen';
-                }).catch(err => {
-                    console.error(`Error attempting to enable fullscreen: ${err.message}`);
-                });
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen().then(() => {
-                        if (btn) btn.innerText = '⛶ Fullscreen';
-                    });
+            try {
+                const doc = window.document;
+                const docEl = doc.documentElement;
+
+                const requestFS = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+                const exitFS = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+                const isFullScreen = doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+
+                if (!isFullScreen) {
+                    if (requestFS) {
+                        requestFS.call(docEl).catch(err => console.log('Fullscreen non-fatal warning:', err));
+                    } else {
+                        alert('Fullscreen mode is not supported on this browser.');
+                    }
+                } else {
+                    if (exitFS) {
+                        exitFS.call(doc).catch(err => console.log('Exit fullscreen non-fatal warning:', err));
+                    }
                 }
+            } catch (err) {
+                console.warn('Fullscreen execution error handled safely:', err);
             }
         }
 
-        // Listen for ESC key or external full-screen exits
-        document.addEventListener('fullscreenchange', () => {
-            const btn = document.getElementById('fullscreenBtn');
-            if (btn) {
-                btn.innerText = document.fullscreenElement ? 'Exit Fullscreen' : '⛶ Fullscreen';
-            }
+        // Sync button text on fullscreen change events
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(eventName => {
+            document.addEventListener(eventName, () => {
+                const btn = document.getElementById('fullscreenBtn');
+                const isFS = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+                if (btn) {
+                    btn.innerText = isFS ? 'Exit Fullscreen' : '⛶ Fullscreen';
+                }
+            });
         });
 
         // 1. Initialise base maps and layer switcher.
@@ -516,23 +528,4 @@
                 const timeString = new Date().toLocaleTimeString();
                 console.log(`[${timeString}] Team ${raceNumber} coordinates: ${lat}, ${lon}`);
 
-                const lastUpdateEl = document.getElementById('last-update');
-                if (lastUpdateEl) {
-                    lastUpdateEl.innerText = `Last updated: ${timeString}`;
-                }
-
-                if (marker) {
-                    marker.setLatLng([lat, lon]);
-                    marker.setPopupContent(popupContent);
-                } else {
-                    marker = L.marker([lat, lon], {
-                        icon: L.divIcon({
-                            className: '',
-                            html: '<div class="racer-icon">🏃</div>',
-                            iconSize: [36, 36],
-                            iconAnchor: [18, 18],
-                            popupAnchor: [0, -18]
-                        }),
-                        zIndexOffset: 1000
-                    })
-                   
+   
