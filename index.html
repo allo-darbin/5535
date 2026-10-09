@@ -54,10 +54,61 @@
             })
             .addTo(map);
 
-        // 3. Function to fetch local JSON relay file updated by your laptop script every 30 seconds
+        // 3. Load Official Checkpoints from checkpoints-p26.json
+        async function loadCheckpoints() {
+            try {
+                const response = await fetch('checkpoints-p26.json');
+                if (!response.ok) throw new Error('Failed to load checkpoints');
+                const json = await response.json();
+                
+                if (json.success && Array.isArray(json.data)) {
+                    json.data.forEach(cp => {
+                        L.circleMarker([cp.la, cp.lo], {
+                            radius: 6,
+                            color: cp.c || '#f44034',
+                            fillColor: cp.c || '#f44034',
+                            fillOpacity: 0.8
+                        })
+                        .addTo(map)
+                        .bindTooltip(`<b>${cp.n}</b>`, { permanent: true, direction: 'top', offset: [0, -5] });
+                    });
+                }
+            } catch (error) {
+                console.error("Error loading checkpoints:", error);
+            }
+        }
+
+        // 4. Load Manual Cheerpoints from cheerpoints.json
+        async function loadCheerpoints() {
+            try {
+                const response = await fetch('cheerpoints.json?t=' + new Date().getTime());
+                if (!response.ok) return; // Optional file, ignore if missing
+                const json = await response.json();
+                
+                if (json.success && Array.isArray(json.data)) {
+                    json.data.forEach(cp => {
+                        L.circleMarker([cp.lat, cp.lon], {
+                            radius: 7,
+                            color: '#9c27b0', // Purple color for cheer spots
+                            fillColor: '#ba68c8',
+                            fillOpacity: 0.9
+                        })
+                        .addTo(map)
+                        .bindPopup(`<b>🎉 ${cp.name}</b><br>${cp.note || ''}`)
+                        .bindTooltip(`🎉 ${cp.name}`, { permanent: true, direction: 'bottom', offset: [0, 5] });
+                    });
+                }
+            } catch (error) {
+                console.log("No cheerpoints.json found or invalid format yet.");
+            }
+        }
+
+        loadCheckpoints();
+        loadCheerpoints();
+
+        // 5. Function to fetch local JSON relay file updated by your laptop script every 30 seconds
         async function updateTracker() {
             try {
-                // Appending timestamp prevents browser/GitHub Pages caching old JSON payloads
                 const response = await fetch('team5535_live.json?t=' + new Date().getTime());
                 
                 if (!response.ok) {
@@ -65,8 +116,6 @@
                 }
                 
                 const json = await response.json();
-
-                // OpenTracking team details format: { success: true, data: { n: "Team Name", ll: "lat,lon", ... } }
                 let teamData = null;
 
                 if (json && json.success && json.data) {
@@ -86,9 +135,7 @@
                     if (marker) {
                         marker.setLatLng([lat, lon]);
                     } else {
-                        marker = L.marker([lat, lon]).addTo(map)
-                            .bindPopup(`<b>${teamName}</b><br>Team 5535`)
-                            .openPopup();
+                        marker = L.marker([lat, lon]).addTo(map);
                     }
                 } else {
                     document.getElementById('team-status').innerText = "Waiting for valid coordinate data...";
@@ -99,7 +146,6 @@
             }
         }
 
-        // Run immediately on load, then repeat every 30 seconds
         updateTracker();
         setInterval(updateTracker, 30000);
     </script>
