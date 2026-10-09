@@ -148,12 +148,14 @@
                             `📍 Open in Google Maps</a>`
                         )
                         .bindTooltip(
-                            `<b>${cp.n || 'Checkpoint'}</b>`,
-                            {
-                                permanent: true,
-                                direction: 'top',
-                                offset: [0, -5]
-                            }
+                                `<b>${cp.n || 'Checkpoint'}</b><br>` +
+                                `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`,
+                                {
+                                    permanent: true,
+                                    direction: 'top',
+                                    offset: [0, -5],
+                                    interactive: true
+                                }
                         );
 
                         labelLayers.push(checkpoint);
