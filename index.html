@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,7 +55,33 @@
             })
             .addTo(map);
 
-        // 3. Function to fetch local JSON relay file updated by your laptop script every 30 seconds
+        // 3. Load Checkpoints from checkpoints-p26.json
+        async function loadCheckpoints() {
+            try {
+                const response = await fetch('checkpoints-p26.json');
+                if (!response.ok) throw new Error('Failed to load checkpoints');
+                const json = await response.json();
+                
+                if (json.success && Array.isArray(json.data)) {
+                    json.data.forEach(cp => {
+                        L.circleMarker([cp.la, cp.lo], {
+                            radius: 6,
+                            color: cp.c || '#f44034',
+                            fillColor: cp.c || '#f44034',
+                            fillOpacity: 0.8
+                        })
+                        .addTo(map)
+                        .bindTooltip(`<b>${cp.n}</b>`, { permanent: true, direction: 'top', offset: [0, -5] });
+                    });
+                }
+            } catch (error) {
+                console.error("Error loading checkpoints:", error);
+            }
+        }
+
+        loadCheckpoints();
+
+        // 4. Function to fetch local JSON relay file updated by your laptop script every 30 seconds
         async function updateTracker() {
             try {
                 // Appending timestamp prevents browser/GitHub Pages caching old JSON payloads
@@ -86,9 +113,7 @@
                     if (marker) {
                         marker.setLatLng([lat, lon]);
                     } else {
-                        marker = L.marker([lat, lon]).addTo(map)
-                            .bindPopup(`<b>${teamName}</b><br>Team 5535`)
-                            .openPopup();
+                        marker = L.marker([lat, lon]).addTo(map);
                     }
                 } else {
                     document.getElementById('team-status').innerText = "Waiting for valid coordinate data...";
@@ -105,3 +130,5 @@
     </script>
 </body>
 </html>
+
+```
