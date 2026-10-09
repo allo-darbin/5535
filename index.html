@@ -30,7 +30,7 @@
             padding: 12px 18px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            max-width: 280px;
+            max-width: 290px;
             font-size: 13px;
         }
 
@@ -66,13 +66,15 @@
             <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
             Show Marker Labels
         </label>
-        <div style="border-top: 1px solid #eee; padding-top: 8px;">
+        <div style="border-top: 1px solid #eee; padding-top: 8px; margin-bottom: 8px;">
             <label for="timeOffset" style="display: block; font-size: 11px; margin-bottom: 3px; color: #666;">Time Offset (mins):</label>
-            <div style="display: flex; gap: 5px;">
-                <input type="number" id="timeOffset" value="0" style="width: 65px; padding: 3px; font-size: 12px;">
-                <button onclick="applyTimeOffset()" style="padding: 3px 8px; font-size: 12px; cursor: pointer;">Apply</button>
+            <div style="display: flex; gap: 4px; align-items: center;">
+                <input type="number" id="timeOffset" value="0" onchange="applyTimeOffset()" style="width: 50px; padding: 3px; font-size: 12px;">
+                <button onclick="applyTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Apply</button>
+                <button onclick="resetTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Reset</button>
             </div>
         </div>
+        <div id="last-update" style="font-size: 11px; color: #888; border-top: 1px solid #eee; padding-top: 6px;">Tracking active...</div>
     </div>
 
     <div id="map"></div>
@@ -81,13 +83,29 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
 
     <script>
-        // 1. Initialise the map.
-        const map = L.map('map').setView([56.122185, -3.91031], 13);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // 1. Initialise base maps and layer switcher.
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        });
+
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community'
+        });
+
+        const map = L.map('map', {
+            center: [56.122185, -3.91031],
+            zoom: 13,
+            layers: [osmLayer] // Default view
+        });
+
+        const baseMaps = {
+            "Street Map": osmLayer,
+            "Satellite View": satelliteLayer
+        };
+
+        L.control.layers(baseMaps).addTo(map);
 
         let marker = null;
         let checkpointLayers = [];
@@ -231,7 +249,7 @@
             });
         }
 
-        // Triggered when clicking "Apply" button
+        // Triggered when clicking "Apply" or changing the input
         function applyTimeOffset() {
             const offsetInput = document.getElementById('timeOffset');
             const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
@@ -243,6 +261,15 @@
             renderCheckpoints();
             renderCheerpoints();
             toggleLabels();
+        }
+
+        // Reset offset back to 0
+        function resetTimeOffset() {
+            const input = document.getElementById('timeOffset');
+            if (input) {
+                input.value = 0;
+            }
+            applyTimeOffset();
         }
 
         // 3. Load official checkpoints.
@@ -373,10 +400,14 @@
                     `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
                     `📍 Open in Google Maps</a>`;
 
-                console.log(
-                    `[${new Date().toLocaleTimeString()}] ` +
-                    `Team ${raceNumber} coordinates: ${lat}, ${lon}`
-                );
+                const timeString = new Date().toLocaleTimeString();
+                console.log(`[${timeString}] Team ${raceNumber} coordinates: ${lat}, ${lon}`);
+
+                // Update status indicator
+                const lastUpdateEl = document.getElementById('last-update');
+                if (lastUpdateEl) {
+                    lastUpdateEl.innerText = `Last updated: ${timeString}`;
+                }
 
                 if (marker) {
                     marker.setLatLng([lat, lon]);
@@ -401,6 +432,10 @@
 
             } catch (error) {
                 console.error('Error updating racer marker:', error);
+                const lastUpdateEl = document.getElementById('last-update');
+                if (lastUpdateEl) {
+                    lastUpdateEl.innerText = `Update failed (${new Date().toLocaleTimeString()})`;
+                }
             }
         }
 
