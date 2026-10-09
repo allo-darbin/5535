@@ -34,10 +34,25 @@
       "lat": 56.1276494,
       "lon": -3.943566
     },
-        {
+      {
+      "name": "Opposite Castle Vale",
+      "lat": 56.1387765,
+      "lon": -3.9430078
+    },
+    {
       "name": "East Bridge",
       "lat": 56.1291906,
       "lon": -3.9365282
+    },
+    {
+      "name": "Castle Vale",
+      "lat": 56.1393385,
+      "lon": -3.9499411
+    },
+    {
+      "name": "Sunnylaw",
+      "lat": 56.1532038,
+      "lon": -3.9500257
     },
     {
       "name": "Wallace Monument",
