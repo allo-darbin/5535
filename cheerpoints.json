@@ -2,9 +2,14 @@
   "success": true,
   "data": [
     {
+      "name": "Bannockburn Main St",
+      "lat": 56.0922828,
+      "lon": -3.9571916
+    },
+        {
       "name": "Bowling Club",
-      "lat": 56.0884847,
-      "lon": -3.9499696
+      "lat": 56.0926162,
+      "lon": -3.9410971
     }
   ]
 }
