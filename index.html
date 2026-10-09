@@ -22,8 +22,8 @@
 
     <!-- Floating Info Panel -->
     <div class="info-box">
-        <h3 id="team-name">Team 5535: Loading...</h3>
-        <p id="team-status">Connecting to tracking feed...</p>
+        <h3 id="team-name">Team 5535: Connecting...</h3>
+        <p id="team-status">Polling worker every 30s...</p>
         <p id="team-coords">Coordinates: --</p>
     </div>
 
@@ -54,59 +54,53 @@
             })
             .addTo(map);
 
-        // 3. Function to fetch JSON using AllOrigins proxy and update team 5535
+        // 3. Function to fetch live JSON via your Cloudflare Worker every 30 seconds
         async function updateTracker() {
             try {
-                const targetUrl = 'https://live.opentracking.co.uk/26ww50km/data/teams-p26.json';
-                // Using AllOrigins wrapper to successfully bypass CORS restrictions
-                const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl);
+                // PASTE YOUR CLOUDFLARE WORKER URL INSIDE THE QUOTES BELOW:
+                const workerUrl = 'https://race-proxy.stuart-28b.workers.dev/';
                 
-                const response = await fetch(proxyUrl);
-                const wrapper = await response.json();
-                
-                if (wrapper && wrapper.contents) {
-                    const json = JSON.parse(wrapper.contents);
+                const response = await fetch(workerUrl);
+                const json = await response.json();
 
-                    if (json && json.data) {
-                        let foundTeam = null;
-                        
-                        json.data.forEach(group => {
-                            if (group.teams) {
-                                group.teams.forEach(team => {
-                                    if (team.r === 5535 || team.r === "5535") {
-                                        foundTeam = team;
-                                    }
-                                });
-                            }
-                        });
-
-                        if (foundTeam && foundTeam.ll) {
-                            console.log("Found Team 5535:", foundTeam);
-                            const [lat, lon] = foundTeam.ll.split(',').map(Number);
-
-                            document.getElementById('team-name').innerText = `${foundTeam.n} (#${foundTeam.r})`;
-                            document.getElementById('team-status').innerText = `Status: Active`;
-                            document.getElementById('team-coords').innerText = `Lat/Lon: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-
-                            if (marker) {
-                                marker.setLatLng([lat, lon]);
-                            } else {
-                                marker = L.marker([lat, lon]).addTo(map)
-                                    .bindPopup(`<b>${foundTeam.n}</b><br>Team 5535`)
-                                    .openPopup();
-                            }
-                        } else {
-                            document.getElementById('team-status').innerText = "Team 5535 location pending";
+                if (json && json.data) {
+                    let foundTeam = null;
+                    
+                    json.data.forEach(group => {
+                        if (group.teams) {
+                            group.teams.forEach(team => {
+                                if (team.r === 5535 || team.r === "5535") {
+                                    foundTeam = team;
+                                }
+                            });
                         }
+                    });
+
+                    if (foundTeam && foundTeam.ll) {
+                        const [lat, lon] = foundTeam.ll.split(',').map(Number);
+
+                        document.getElementById('team-name').innerText = `${foundTeam.n} (#${foundTeam.r})`;
+                        document.getElementById('team-status').innerText = `Status: Live (30s polling)`;
+                        document.getElementById('team-coords').innerText = `Lat/Lon: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+
+                        if (marker) {
+                            marker.setLatLng([lat, lon]);
+                        } else {
+                            marker = L.marker([lat, lon]).addTo(map)
+                                .bindPopup(`<b>${foundTeam.n}</b><br>Team 5535`)
+                                .openPopup();
+                        }
+                    } else {
+                        document.getElementById('team-status').innerText = "Team 5535 not found in feed";
                     }
                 }
             } catch (error) {
-                console.error("Error fetching live tracking data:", error);
-                document.getElementById('team-status').innerText = "Connection error. Retrying...";
+                console.error("Error fetching live data via worker:", error);
+                document.getElementById('team-status').innerText = "Connection error. Retrying in 30s...";
             }
         }
 
-        // Run immediately and poll every 30 seconds
+        // Run immediately on load, then repeat every 30 seconds like clockwork
         updateTracker();
         setInterval(updateTracker, 30000);
     </script>
