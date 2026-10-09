@@ -9,13 +9,13 @@
     {
       "name": "0820 Bowling Club",
       "lat": 56.0938723,
-      "lon": -3.9414038
+      "lon": -3.9414038 
     },
       
     {
       "name": "0840 Cambusbarron",
-      "lat": 56.1081902,
-      "lon": -3.9778872
+      "lat": 56.1076566,
+      "lon": -3.9833107
     },
     {
       "name": "0905 King's Park",
@@ -33,7 +33,7 @@
       "lon": -3.938488
     },
       {
-      "name": "0955 pposite Castle Vale",
+      "name": "0955 Opposite Castle Vale",
       "lat": 56.1402036,
       "lon": -3.9532177
     },
@@ -52,10 +52,10 @@
       "lat": 56.1594811,
       "lon": -3.9523063
     },
-        {
+    {
       "name": "1115 Dumyat",
-      "lat": 56.1581074,
-      "lon": -3.9172064
+      "lat": 56.1592512,
+      "lon": -3.9136441
     }, 
     {
       "name": "1140 Wallace Monument",
