@@ -30,8 +30,8 @@
     },
     {
       "name": "West Bridge",
-      "lat": 56.1297159,
-      "lon": -3.9447567
+      "lat": 56.128314,
+      "lon": -3.938488
     },
       {
       "name": "Opposite Castle Vale",
@@ -40,8 +40,10 @@
     },
     {
       "name": "East Bridge",
-      "lat": 56.1291906,
-      "lon": -3.9365282
+      "lat": 56.129397,
+      "lon": -3.935099
+
+
     },
     {
       "name": "Castle Vale",
