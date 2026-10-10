@@ -13,7 +13,7 @@
     "cl": "",
     "d": null,
     "lc": "Mary Queen of Scots",
-    "ll": "56.150081,-3.923859",
+    "ll": "56.150150,-3.926654",
     "co": "#2094f3",
     "tco": "#ffffff",
     "t": "03:13:55",
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 11:44",
-    "dt": "2026-10-10 11:44:47",
+    "lt": "10 Oct 26 11:45",
+    "dt": "2026-10-10 11:45:47",
     "fin": 0,
     "ic": null,
     "b": 84,
@@ -156,7 +156,7 @@
       "Group": "Team of 3",
       "Speed": "11.1 kph",
       "Battery": "84%",
-      "Last Tracked": "10 Oct 11:44",
+      "Last Tracked": "10 Oct 11:45",
       "Total Dwell": "00:08:28"
     }
   }
