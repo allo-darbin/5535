@@ -69,7 +69,7 @@
             border-color: #c8e6c9;
         }
 
-        /* Fullscreen floating overlay in bottom-right */
+        /* Fullscreen floating button in bottom-right */
         .fullscreen-overlay {
             position: absolute;
             bottom: 15px;
@@ -98,19 +98,20 @@
             margin-top: 10px;
         }
 
-        /* Standalone "Last Updated" text overlay in bottom-left corner */
+        /* Existing status box in bottom-left corner */
         .status-overlay {
             position: absolute;
             bottom: 15px;
             left: 15px;
             z-index: 1000;
             background: rgba(255, 255, 255, 0.85);
-            padding: 4px 8px;
+            padding: 5px 8px;
             border-radius: 4px;
             font-size: 11px;
             color: #333;
             box-shadow: 0 1px 4px rgba(0,0,0,0.2);
             pointer-events: none;
+            line-height: 1.4;
         }
 
         .leaflet-popup-content a {
@@ -155,7 +156,7 @@
         <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
     </div>
 
-    <!-- Standalone text overlay at bottom-left -->
+    <!-- Existing bottom-left timestamp container -->
     <div id="last-update" class="status-overlay">Tracking active...</div>
 
     <div id="map"></div>
@@ -261,6 +262,7 @@
         let prevLat = null;
         let prevLon = null;
         let prevTime = null;
+        let lastTrackerUpdateTime = null;
 
         function extractLineString(geoJson) {
             try {
@@ -501,6 +503,7 @@
                     prevLat = lat;
                     prevLon = lon;
                     prevTime = now;
+                    lastTrackerUpdateTime = now; // Mark time of actual position change
                     lastKnownCoords = rawLl;
 
                     if (cleanRouteLine && typeof turf !== 'undefined') {
@@ -519,6 +522,8 @@
 
                     renderPoints();
                     toggleLabels();
+                } else if (!lastTrackerUpdateTime) {
+                    lastTrackerUpdateTime = now;
                 }
 
                 let popupTitle = '';
@@ -621,10 +626,15 @@
                     }
                 }
 
+                // Render both lines directly inside the existing bottom-left box
                 const statusEl = document.getElementById('last-update');
                 if (statusEl) {
-                    const statusNow = new Date();
-                    statusEl.innerText = `Last updated: ${statusNow.toLocaleTimeString()}`;
+                    const browserRefreshTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    const trackerTime = lastTrackerUpdateTime ? lastTrackerUpdateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Pending...';
+                    
+                    statusEl.innerHTML = 
+                        `ETAs last updated: ${browserRefreshTime}<br>` +
+                        `Tracker last updated: ${trackerTime}`;
                 }
             } catch (error) {
                 console.log('Error updating tracker:', error);
