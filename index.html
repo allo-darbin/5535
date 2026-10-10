@@ -33,8 +33,7 @@
             padding: 10px 14px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            max-width: 290px;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .info-box p {
@@ -74,7 +73,7 @@
             margin-top: 10px;
         }
 
-        /* Existing status box in bottom-left corner */
+        /* Status box in bottom-left corner */
         .status-overlay {
             position: absolute;
             bottom: 15px;
@@ -87,7 +86,8 @@
             color: #333;
             box-shadow: 0 1px 4px rgba(0,0,0,0.2);
             pointer-events: none;
-            line-height: 1.4;
+            line-height: 1.2;
+            white-space: nowrap;
         }
 
         .leaflet-popup-content a {
@@ -108,24 +108,35 @@
             text-align: center;
             filter: drop-shadow(1px 2px 2px #555);
         }
+
+        /* Vertical separator between controls */
+        .divider {
+            width: 1px;
+            height: 16px;
+            background-color: #ddd;
+            margin: 0 8px;
+        }
     </style>
 </head>
 
 <body>
     <div class="info-box">
-        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #666; gap: 12px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #666;">
             <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
                 <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
                 Show Labels
             </label>
-            <label for="timeOffset" style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                Offset:
+            
+            <div class="divider"></div>
+
+            <label for="timeOffset" style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                Time Offset:
                 <input type="number" id="timeOffset" value="0" oninput="applyTimeOffset()" class="offset-input">
             </label>
         </div>
     </div>
 
-    <!-- Existing bottom-left timestamp container -->
+    <!-- Bottom-left single-line status overlay -->
     <div id="last-update" class="status-overlay">Tracking active...</div>
 
     <div id="map"></div>
@@ -557,9 +568,7 @@
                     const browserRefreshTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                     const trackerTime = lastTrackerUpdateTime ? lastTrackerUpdateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Pending...';
                     
-                    statusEl.innerHTML = 
-                        `ETAs last updated: ${browserRefreshTime}<br>` +
-                        `Tracker last updated: ${trackerTime}`;
+                    statusEl.innerHTML = `Last updated... ETAs ${browserRefreshTime} &nbsp;|&nbsp; Tracker ${trackerTime}`;
                 }
             } catch (error) {
                 console.log('Error updating tracker:', error);
