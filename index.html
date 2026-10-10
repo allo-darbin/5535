@@ -526,7 +526,7 @@
                             statsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
                                          `<b>ETA:</b> ${etaString}<br>` +
                                          `<b>Speed:</b> ${speedDisplay}<br>` +
-                                         `<i>Target was ${schedString}</i><br>`;
+                                         `<i>Your target: ${schedString}</i><br>`;
                         }
                     } catch (err) {
                         console.error("Calculation error handled safely:", err);

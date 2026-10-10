@@ -174,7 +174,7 @@ def fetch_and_commit():
         )
 
         commit_elapsed = time.monotonic() - commit_started
-        log(f"Git commit completed in {commit_elapsed:.2f}s.")
+        #log(f"Git commit completed in {commit_elapsed:.2f}s.")
 
         # 7. Push using your configured Git credentials
         push_started = time.monotonic()
@@ -188,7 +188,7 @@ def fetch_and_commit():
         )
 
         push_elapsed = time.monotonic() - push_started
-        log(f"Git push completed in {push_elapsed:.2f}s.")
+        #log(f"Git push completed in {push_elapsed:.2f}s.")
         log("Tracking data committed and pushed successfully.")
 
     except requests.RequestException as e:
