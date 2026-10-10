@@ -329,10 +329,11 @@
                     }
                 }
 
-                // Clean up title name for the point popup if needed, or keep original format
+                // Strip first 5 characters (e.g. "0805 ") and exclude the cheerpoint line
+                let cleanLocationName = displayName.length > 5 ? displayName.substring(5) : displayName;
+
                 const popupHtml =
                     `<b>${displayName}</b><br>` +
-                    `<small>(${isCheckpoint ? 'Checkpoint' : 'Cheerpoint'})</small><br>` +
                     `ETA: ${etaDisplay}<br>` +
                     `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
 
@@ -345,7 +346,7 @@
                 .addTo(map)
                 .bindPopup(popupHtml)
                 .bindTooltip(
-                    `<b>${displayName}</b>`,
+                    `<b>${cleanLocationName}</b>`,
                     {
                         permanent: true,
                         direction: isCheckpoint ? 'top' : 'bottom',
@@ -354,7 +355,7 @@
                 );
 
                 pointLayers.push(pointMarker);
-                parsedPoints.push({ lat, lon, name: displayName, timeStr: targetTimeStr, type: pt.point_type });
+                parsedPoints.push({ lat, lon, name: cleanLocationName, timeStr: targetTimeStr, type: pt.point_type });
             });
         }
 
@@ -568,17 +569,16 @@
                     marker = L.marker([lat, lon], { icon: runnerIcon }).addTo(map);
                     marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
                     marker.openPopup();
+                    
+                    // Center map ONLY on initial position receive
+                    map.setView([lat, lon], 14);
+                    firstPositionReceived = true;
                 } else {
                     marker.setLatLng([lat, lon]);
                     marker.getPopup().setContent(popupContent);
                     if (!marker.isPopupOpen()) {
                         marker.openPopup();
                     }
-                }
-
-                if (!firstPositionReceived) {
-                    map.setView([lat, lon], 14);
-                    firstPositionReceived = true;
                 }
 
                 const statusEl = document.getElementById('last-update');
