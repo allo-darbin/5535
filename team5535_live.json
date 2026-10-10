@@ -13,7 +13,7 @@
     "cl": "",
     "d": null,
     "lc": "Wallace Monument",
-    "ll": "56.139975,-3.917194",
+    "ll": "56.139496,-3.916121",
     "co": "#2094f3",
     "tco": "#ffffff",
     "t": "04:11:15",
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 11:57",
-    "dt": "2026-10-10 11:57:45",
+    "lt": "10 Oct 26 11:58",
+    "dt": "2026-10-10 11:58:45",
     "fin": 0,
     "ic": null,
     "b": 83,
@@ -35,7 +35,7 @@
     "v": true,
     "af": 0,
     "as": 0,
-    "totaldwell": "00:09:58",
+    "totaldwell": "00:10:58",
     "splitLabel": "Split",
     "splits": [
       {
@@ -117,8 +117,8 @@
         "i": 402118,
         "n": "Wallace Monument",
         "ct": "control",
-        "dwell": "00:01:30",
-        "ds": 90,
+        "dwell": "00:02:30",
+        "ds": 150,
         "t": "Sat 11:56:15",
         "s": "00:57:20",
         "ss": 3440,
@@ -156,8 +156,8 @@
       "Group": "Team of 3",
       "Speed": "4.0 kph",
       "Battery": "83%",
-      "Last Tracked": "10 Oct 11:57",
-      "Total Dwell": "00:09:58"
+      "Last Tracked": "10 Oct 11:58",
+      "Total Dwell": "00:10:58"
     }
   }
 }
