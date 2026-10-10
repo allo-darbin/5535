@@ -45,7 +45,7 @@
         /* Time offset input styling with gentle background colors */
         .offset-input {
             width: 50px;
-            padding: 4px 6px;
+            padding: 3px 5px;
             font-size: 12px;
             border: 1px solid #ddd;
             border-radius: 4px;
@@ -98,7 +98,7 @@
             margin-top: 10px;
         }
 
-        /* Status box in bottom-left corner */
+        /* Existing status box in bottom-left corner */
         .status-overlay {
             position: absolute;
             bottom: 15px;
@@ -142,12 +142,10 @@
             Show Marker Labels
         </label>
         <div style="border-top: 1px solid #eee; padding-top: 8px;">
-            <label for="timeOffset" style="display: block; font-size: 11px; margin-bottom: 3px; color: #666;">Time Offset (mins):</label>
-            <div style="display: flex; gap: 4px; align-items: center;">
-                <input type="number" id="timeOffset" value="0" oninput="updateOffsetStyle()" onchange="applyTimeOffset()" class="offset-input">
-                <button onclick="applyTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Apply</button>
-                <button onclick="resetTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Reset</button>
-            </div>
+            <label for="timeOffset" style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #666; cursor: pointer;">
+                Offset (mins):
+                <input type="number" id="timeOffset" value="0" oninput="applyTimeOffset()" class="offset-input">
+            </label>
         </div>
     </div>
 
@@ -156,7 +154,7 @@
         <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
     </div>
 
-    <!-- Bottom-left timestamp container -->
+    <!-- Existing bottom-left timestamp container -->
     <div id="last-update" class="status-overlay">Tracking active...</div>
 
     <div id="map"></div>
@@ -422,14 +420,6 @@
             if (marker) updateTracker();
         }
 
-        function resetTimeOffset() {
-            const input = document.getElementById('timeOffset');
-            if (input) {
-                input.value = 0;
-            }
-            applyTimeOffset();
-        }
-
         async function loadPoints() {
             try {
                 const response = await fetch('points.json?t=' + Date.now(), { cache: 'no-store' });
@@ -503,7 +493,7 @@
                     prevLat = lat;
                     prevLon = lon;
                     prevTime = now;
-                    lastTrackerUpdateTime = now; // Mark time of actual position change
+                    lastTrackerUpdateTime = now;
                     lastKnownCoords = rawLl;
 
                     if (cleanRouteLine && typeof turf !== 'undefined') {
@@ -626,7 +616,6 @@
                     }
                 }
 
-                // Render both lines directly inside the existing bottom-left box
                 const statusEl = document.getElementById('last-update');
                 if (statusEl) {
                     const browserRefreshTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
