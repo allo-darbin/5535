@@ -1,0 +1,141 @@
+{
+  "success": true,
+  "data": [
+    {
+      "id": 1,
+      "n": "0805 Bannockburn Main St",
+      "la": 56.0908262,
+      "lo": -3.9130452,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 2,
+      "n": "0820 Bowling Club",
+      "la": 56.0923843,
+      "lo": -3.9385825,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 3,
+      "n": "0840 Cambusbarron",
+      "la": 56.107687,
+      "lo": -3.976058,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 402115,
+      "n": "0855 Stuart Finish",
+      "la": 56.104259,
+      "lo": -3.946177,
+      "c": "#f44034",
+      "point_type": "checkpoint"
+    },
+    {
+      "id": 4,
+      "n": "0905 King's Park",
+      "la": 56.113374,
+      "lo": -3.945759,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 5,
+      "n": "0925 Albert Halls",
+      "la": 56.118198,
+      "lo": -3.943491,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 6,
+      "n": "0940 West Bridge",
+      "la": 56.128314,
+      "lo": -3.938488,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 7,
+      "n": "0955 Opposite Castle Vale",
+      "la": 56.139293,
+      "lo": -3.951506,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 8,
+      "n": "1020 East Bridge",
+      "la": 56.129397,
+      "lo": -3.935099,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 9,
+      "n": "1040 Castle Vale",
+      "la": 56.138957,
+      "lo": -3.950531,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 402117,
+      "n": "1050 Alistair Finish",
+      "la": 56.1535,
+      "lo": -3.948872,
+      "c": "#f44034",
+      "point_type": "checkpoint"
+    },
+    {
+      "id": 10,
+      "n": "1100 Sunnylaw",
+      "la": 56.159791,
+      "lo": -3.952003,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 11,
+      "n": "1115 Dumyat",
+      "la": 56.1592512,
+      "lo": -3.9136441,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 12,
+      "n": "1140 Wallace Monument",
+      "la": 56.139852,
+      "lo": -3.920228,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 13,
+      "n": "1150 Alloa Rd",
+      "la": 56.136684,
+      "lo": -3.919597,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 14,
+      "n": "1150 Shore Rd",
+      "la": 56.122871,
+      "lo": -3.932873,
+      "c": "#9c27b0",
+      "point_type": "cheerpoint"
+    },
+    {
+      "id": 402119,
+      "n": "1215 Andrew Finish",
+      "la": 56.122185,
+      "lo": -3.91031,
+      "c": "#f44034",
+      "point_type": "checkpoint"
+    }
+  ]
+}
