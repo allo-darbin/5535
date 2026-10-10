@@ -8,12 +8,12 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "12.90",
+    "sp": "10.40",
     "a": 0,
     "cl": "",
     "d": null,
     "lc": "Freedom",
-    "ll": "56.107118,-3.912692",
+    "ll": "56.105376,-3.912542",
     "co": "#2094f3",
     "tco": "#ffffff",
     "t": "00:00:27",
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 07:53",
-    "dt": "2026-10-10 07:53:55",
+    "lt": "10 Oct 26 07:54",
+    "dt": "2026-10-10 07:54:55",
     "fin": 0,
     "ic": null,
     "b": 95,
@@ -153,9 +153,9 @@
       "Time Taken": "00:00:27",
       "Last Timed Location": "Freedom",
       "Group": "Team of 3",
-      "Speed": "12.9 kph",
+      "Speed": "10.4 kph",
       "Battery": "95%",
-      "Last Tracked": "10 Oct 07:53"
+      "Last Tracked": "10 Oct 07:54"
     }
   }
 }
