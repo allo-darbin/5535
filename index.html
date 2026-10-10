@@ -42,7 +42,7 @@
             color: #444;
         }
 
-        /* Time offset input styling with subtle light background and no dark borders */
+        /* Time offset input styling with gentle background colors */
         .offset-input {
             width: 50px;
             padding: 4px 6px;
@@ -52,15 +52,17 @@
             text-align: center;
             font-weight: bold;
             outline: none;
-            transition: background-color 0.2s ease, color 0.2s ease;
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
         }
 
+        /* Light Yellow for positive offsets */
         .offset-input.offset-pos {
-            background-color: #ffebee;
-            color: #c62828;
-            border-color: #ffcdd2;
+            background-color: #fffde7;
+            color: #f57f17;
+            border-color: #fff59d;
         }
 
+        /* Light Green for negative offsets */
         .offset-input.offset-neg {
             background-color: #e8f5e9;
             color: #2e7d32;
