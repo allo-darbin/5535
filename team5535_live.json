@@ -8,22 +8,22 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "9.30",
+    "sp": "9.80",
     "a": 0,
     "cl": "",
     "d": null,
-    "lc": "King Robert The Bruce",
-    "ll": "56.131483,-3.957669",
+    "lc": "Stirling Castle",
+    "ll": "56.131024,-3.955145",
     "co": "#2094f3",
     "tco": "#ffffff",
-    "t": "01:10:15",
+    "t": "02:29:32",
     "g": "Team of 3",
     "f": "",
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 10:13",
-    "dt": "2026-10-10 10:13:32",
+    "lt": "10 Oct 26 10:14",
+    "dt": "2026-10-10 10:14:32",
     "fin": 0,
     "ic": null,
     "b": 88,
@@ -35,7 +35,7 @@
     "v": true,
     "af": 0,
     "as": 0,
-    "totaldwell": "00:03:29",
+    "totaldwell": "00:03:59",
     "splitLabel": "Split",
     "splits": [
       {
@@ -87,16 +87,16 @@
         "i": 402116,
         "n": "Stirling Castle",
         "ct": "control",
-        "dwell": null,
-        "ds": null,
-        "t": "",
-        "s": "",
-        "ss": 0,
+        "dwell": "00:00:30",
+        "ds": 30,
+        "t": "Sat 10:14:32",
+        "s": "01:19:17",
+        "ss": 4757,
         "p": 0,
         "pt": null,
         "note": "",
-        "v": null,
-        "sss": "01:10:15"
+        "v": "2026-10-10 10:14:32",
+        "sss": "02:29:32"
       },
       {
         "i": 402117,
@@ -111,7 +111,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "01:10:15"
+        "sss": "02:29:32"
       },
       {
         "i": 402118,
@@ -126,7 +126,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "01:10:15"
+        "sss": "02:29:32"
       },
       {
         "i": 402119,
@@ -141,7 +141,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "01:10:15"
+        "sss": "02:29:32"
       }
     ],
     "mailheader": null,
@@ -151,13 +151,13 @@
     "jg": null,
     "profile": null,
     "details": {
-      "Time Taken": "01:10:15",
-      "Last Timed Location": "King Robert The Bruce",
+      "Time Taken": "02:29:32",
+      "Last Timed Location": "Stirling Castle",
       "Group": "Team of 3",
-      "Speed": "9.3 kph",
+      "Speed": "9.8 kph",
       "Battery": "88%",
-      "Last Tracked": "10 Oct 10:13",
-      "Total Dwell": "00:03:29"
+      "Last Tracked": "10 Oct 10:14",
+      "Total Dwell": "00:03:59"
     }
   }
 }
