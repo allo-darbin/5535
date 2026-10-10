@@ -275,6 +275,21 @@
             const offsetInput = document.getElementById('timeOffset');
             const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
 
+            // Load locked targets from localStorage
+            let lockedTargets = {};
+            try {
+                lockedTargets = JSON.parse(localStorage.getItem('lockedPassedTargets') || '{}');
+            } catch (e) {
+                lockedTargets = {};
+            }
+
+            // Get start point for route calculations if available
+            let startPt = null;
+            if (cleanRouteLine && typeof turf !== 'undefined') {
+                const coords = turf.getCoords(cleanRouteLine);
+                if (coords.length > 0) startPt = turf.point(coords[0]);
+            }
+
             rawPointsData.forEach(pt => {
                 const lat = Number(pt.la);
                 const lon = Number(pt.lo);
@@ -284,13 +299,56 @@
                 }
 
                 let displayName = pt.n || 'Point';
-                let targetTimeStr = null;
+                let originalTimeStr = null;
                 const match = displayName.match(/^(\d{4})(\s.*)$/);
+                
+                if (match) {
+                    originalTimeStr = match[1];
+                }
+
+                let targetTimeStr = null;
+                let cleanLocationName = displayName;
+
                 if (match) {
                     const originalTime = match[1];
                     const textDescription = match[2];
-                    targetTimeStr = adjustTimeString(originalTime, offsetMinutes);
+                    cleanLocationName = textDescription.trim();
+
+                    // Check if this point has already been passed by the runner
+                    let isPassed = false;
+                    if (cleanRouteLine && startPt && currentRunnerDistFromStart > 0 && typeof turf !== 'undefined') {
+                        try {
+                            const ptPt = turf.point([lon, lat]);
+                            const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                            const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
+                            const ptDistFromStart = turf.length(ptSlice, { units: 'kilometers' });
+
+                            // If runner has progressed past this point (+50m buffer)
+                            if (currentRunnerDistFromStart >= ptDistFromStart + 0.05) {
+                                isPassed = true;
+                            }
+                        } catch (err) {
+                            console.error("Passed check error:", err);
+                        }
+                    }
+
+                    if (isPassed) {
+                        // If already locked in storage, use it. Otherwise lock it with current offset (or fallback to original if blank)
+                        if (lockedTargets[cleanLocationName]) {
+                            targetTimeStr = lockedTargets[cleanLocationName];
+                        } else {
+                            targetTimeStr = adjustTimeString(originalTime, offsetMinutes);
+                            lockedTargets[cleanLocationName] = targetTimeStr;
+                            localStorage.setItem('lockedPassedTargets', JSON.stringify(lockedTargets));
+                        }
+                    } else {
+                        // Not passed yet, calculate dynamically based on current offset slider
+                        targetTimeStr = adjustTimeString(originalTime, offsetMinutes);
+                    }
+
                     displayName = targetTimeStr + textDescription;
+                } else {
+                    cleanLocationName = displayName;
                 }
 
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
@@ -311,12 +369,10 @@
 
                     const effectiveSpeed = currentGlobalSpeedKmPerMin > 0.001 ? currentGlobalSpeedKmPerMin : lastKnownMovingSpeedKmPerMin;
 
-                    if (cleanRouteLine && effectiveSpeed > 0.001 && currentRunnerDistFromStart > 0 && typeof turf !== 'undefined') {
+                    if (cleanRouteLine && effectiveSpeed > 0.001 && currentRunnerDistFromStart > 0 && startPt && typeof turf !== 'undefined') {
                         try {
                             const ptPt = turf.point([lon, lat]);
                             const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
-                            const coords = turf.getCoords(cleanRouteLine);
-                            const startPt = turf.point(coords[0]);
                             const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
                             const ptDistFromStart = turf.length(ptSlice, { units: 'kilometers' });
 
@@ -340,12 +396,10 @@
                     }
                 }
 
-                let cleanLocationName = displayName.length > 5 ? displayName.substring(5) : displayName;
-
                 const popupHtml =
                     `<b>${cleanLocationName}</b><br>` +
                     `ETA: ${etaDisplay}<br>` +
-                    `Scheduled: ${schedDisplay}<br>` +
+                    `Your target: ${schedDisplay}<br>` +
                     `<a href="${mapsUrl}" target="_blank" rel="noopener">🗺️ Open in Google Maps</a>`;
 
                 const pointMarker = L.circleMarker([lat, lon], {
@@ -533,7 +587,7 @@
                     }
                 }
 
-                // Re-render points using the effective speed
+                // Re-render points using the effective speed and locked past targets
                 renderPoints();
                 toggleLabels();
 
