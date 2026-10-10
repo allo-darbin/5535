@@ -331,7 +331,6 @@
                     }
                 }
 
-                // Strip the first 5 characters (e.g. "0805 ") for the popup body name, keeping full displayName for the toggleable label tooltip
                 let cleanLocationName = displayName.length > 5 ? displayName.substring(5) : displayName;
 
                 const popupHtml =
@@ -422,7 +421,7 @@
             });
         }
 
-        // 4. Fetch and display the latest racer position (recalc ETAs only when coordinates change)
+        // 4. Fetch and display the latest racer position (never steals viewport focus)
         async function updateTracker() {
             try {
                 const response = await fetch(
@@ -567,6 +566,7 @@
                     marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
                     marker.openPopup();
                     
+                    // Only center map on the very first load
                     map.setView([lat, lon], 14);
                     firstPositionReceived = true;
                 } else {
