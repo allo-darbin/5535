@@ -8,22 +8,22 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "8.50",
+    "sp": "8.90",
     "a": 0,
     "cl": "",
     "d": null,
-    "lc": "Stirling Castle",
-    "ll": "56.149047,-3.950607",
+    "lc": "Mary Queen of Scots",
+    "ll": "56.150352,-3.949449",
     "co": "#2094f3",
     "tco": "#ffffff",
-    "t": "02:29:32",
+    "t": "03:11:55",
     "g": "Team of 3",
     "f": "",
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 10:55",
-    "dt": "2026-10-10 10:55:55",
+    "lt": "10 Oct 26 10:56",
+    "dt": "2026-10-10 10:56:55",
     "fin": 0,
     "ic": null,
     "b": 86,
@@ -102,16 +102,16 @@
         "i": 402117,
         "n": "Mary Queen of Scots",
         "ct": "control",
-        "dwell": null,
-        "ds": null,
-        "t": "",
-        "s": "",
-        "ss": 0,
+        "dwell": "00:00:00",
+        "ds": 0,
+        "t": "Sat 10:56:55",
+        "s": "00:42:23",
+        "ss": 2543,
         "p": 0,
         "pt": null,
         "note": "",
-        "v": null,
-        "sss": "02:29:32"
+        "v": "2026-10-10 10:56:55",
+        "sss": "03:11:55"
       },
       {
         "i": 402118,
@@ -126,7 +126,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "02:29:32"
+        "sss": "03:11:55"
       },
       {
         "i": 402119,
@@ -141,7 +141,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "02:29:32"
+        "sss": "03:11:55"
       }
     ],
     "mailheader": null,
@@ -151,12 +151,12 @@
     "jg": null,
     "profile": null,
     "details": {
-      "Time Taken": "02:29:32",
-      "Last Timed Location": "Stirling Castle",
+      "Time Taken": "03:11:55",
+      "Last Timed Location": "Mary Queen of Scots",
       "Group": "Team of 3",
-      "Speed": "8.5 kph",
+      "Speed": "8.9 kph",
       "Battery": "86%",
-      "Last Tracked": "10 Oct 10:55",
+      "Last Tracked": "10 Oct 10:56",
       "Total Dwell": "00:06:28"
     }
   }
