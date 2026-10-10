@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team 5535 Live Tracker</title>
+
+    <!-- Inline Runner Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏃</text></svg>">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: Arial, sans-serif;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .info-box {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            background: white;
+            padding: 12px 18px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            max-width: 290px;
+            font-size: 13px;
+        }
+
+        .info-box p {
+            margin: 6px 0 0;
+            color: #444;
+        }
+
+        /* Fullscreen floating overlay in bottom-right */
+        .fullscreen-overlay {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            z-index: 1000;
+        }
+
+        .fullscreen-btn {
+            padding: 6px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            border: none;
+            background: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-weight: bold;
+            color: #333;
+        }
+
+        .fullscreen-btn:hover {
+            background: #f0f0f0;
+        }
+
+        /* Prevent layer control from overlapping zoom +/- buttons */
+        .leaflet-top.leaflet-left .leaflet-control-layers {
+            margin-top: 10px;
+        }
+
+        /* Standalone "Last Updated" text overlay in bottom-left corner */
+        .status-overlay {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #333;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+            pointer-events: none;
+        }
+
+        .leaflet-popup-content a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .leaflet-popup-content a:hover {
+            text-decoration: underline;
+        }
+
+        .racer-icon {
+            font-size: 30px;
+            line-height: 36px;
+            text-align: center;
+            filter: drop-shadow(1px 2px 2px #555);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="info-box">
+        <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+            <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
+            Show Marker Labels
+        </label>
+        <div style="border-top: 1px solid #eee; padding-top: 8px;">
+            <label for="timeOffset" style="display: block; font-size: 11px; margin-bottom: 3px; color: #666;">Time Offset (mins):</label>
+            <div style="display: flex; gap: 4px; align-items: center;">
+                <input type="number" id="timeOffset" value="0" onchange="applyTimeOffset()" style="width: 50px; padding: 3px; font-size: 12px;">
+                <button onclick="applyTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Apply</button>
+                <button onclick="resetTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Fullscreen button at bottom-right -->
+    <div class="fullscreen-overlay">
+        <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
+    </div>
+
+    <!-- Standalone text overlay at bottom-left -->
+    <div id="last-update" class="status-overlay">Tracking active...</div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
+    <!-- Turf.js for route distance calculations -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+    <script>
+        function toggleFullScreen() {
+            const doc = document;
+            const elem = document.documentElement;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(() => {});
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) {
+                    elem.mozRequestFullScreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                }
+            } else {
+                if (doc.exitFullscreen) {
+                    doc.exitFullscreen().catch(() => {});
+                } else if (doc.msExitFullscreen) {
+                    doc.msExitFullscreen();
+                } else if (doc.mozCancelFullScreen) {
+                    doc.mozCancelFullScreen();
+                } else if (doc.webkitExitFullscreen) {
+                    doc.webkitExitFullscreen();
+                }
+            }
+        }
+
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                const btn = document.getElementById('fullscreenBtn');
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullscreenElement || document.msFullscreenElement);
+                if (btn) btn.innerText = isFS ? 'Exit Fullscreen' : '⛶ Fullscreen';
+            });
+        });
+
+        // 1. Initialise base maps and layer switcher with persistence.
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap contributors'
+        });
+
+        const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community'
+        });
+
+        const savedLayerName = localStorage.getItem('selectedMapLayer');
+        const initialLayer = (savedLayerName === 'Satellite View') ? satelliteLayer : osmLayer;
+
+        const map = L.map('map', {
+            center: [56.122185, -3.91031],
+            zoom: 13,
+            layers: [initialLayer]
+        });
+
+        const baseMaps = {
+            "Street Map": osmLayer,
+            "Satellite View": satelliteLayer
+        };
+
+        L.control.layers(baseMaps, null, { position: 'topleft' }).addTo(map);
+
+        map.on('baselayerchange', function (e) {
+            localStorage.setItem('selectedMapLayer', e.name);
+        });
+
+        let marker = null;
+        let pointLayers = [];
+        let rawPointsData = [];
+        let parsedPoints = [];
+        let firstPositionReceived = false;
+        let cleanRouteLine = null; // Clean single LineString for Turf
+
+        let lastKnownCoords = null;
+        let globalRunnerSpeedKmPerMin = 0;
+        let globalRunnerTraveledKm = 0;
+        let lastCachedPopupTitle = '';
+        let lastCachedStatsHtml = '';
+        let userClosedPopup = false; // Properly declared tracker for manual close
+
+        function extractLineString(geoJson) {
+            try {
+                let coords = [];
+                turf.coordEach(geoJson, function (currentCoord) {
+                    coords.push(currentCoord);
+                });
+                if (coords.length >= 2) {
+                    return turf.lineString(coords);
+                }
+            } catch (err) {
+                console.error("Error processing KML coordinates for Turf:", err);
+            }
+            return null;
+        }
+
+        omnivore.kml('route.kml')
+            .on('ready', function () {
+                this.setStyle({
+                    color: '#2094f3',
+                    weight: 5,
+                    opacity: 0.8
+                });
+
+                if (!firstPositionReceived && this.getBounds().isValid()) {
+                    map.fitBounds(this.getBounds());
+                }
+
+                cleanRouteLine = extractLineString(this.toGeoJSON());
+            })
+            .on('error', function (error) {
+                console.error('Could not load route.kml:', error);
+            })
+            .addTo(map);
+
+        function adjustTimeString(timeStr, offsetMinutes) {
+            let hours = parseInt(timeStr.substring(0, 2), 10);
+            let mins = parseInt(timeStr.substring(2, 4), 10);
+            
+            let totalMinutes = (hours * 60) + mins + offsetMinutes;
+            totalMinutes = (totalMinutes + 1440) % 1440;
+            
+            let newHours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+            let newMins = (totalMinutes % 60).toString().padStart(2, '0');
+            
+            return newHours + newMins;
+        }
+
+        function renderPoints() {
+            pointLayers.forEach(layer => map.removeLayer(layer));
+            pointLayers = [];
+            parsedPoints = [];
+
+            const offsetInput = document.getElementById('timeOffset');
+            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
+
+            rawPointsData.forEach(pt => {
+                const lat = Number(pt.la);
+                const lon = Number(pt.lo);
+
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+                    return;
+                }
+
+                let displayName = pt.n || 'Point';
+                let targetTimeStr = null;
+                const match = displayName.match(/^(\d{4})(\s.*)$/);
+                if (match) {
+                    const originalTime = match[1];
+                    const textDescription = match[2];
+                    targetTimeStr = adjustTimeString(originalTime, offsetMinutes);
+                    displayName = targetTimeStr + textDescription;
+                }
+
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+                const isCheckpoint = pt.point_type === 'checkpoint';
+
+                let etaDisplay = targetTimeStr ? `${targetTimeStr.substring(0, 2)}:${targetTimeStr.substring(2, 4)}` : 'TBD';
+                
+                if (cleanRouteLine && targetTimeStr && typeof turf !== 'undefined') {
+                    try {
+                        const ptPt = turf.point([lon, lat]);
+                        const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                        const coords = turf.getCoords(cleanRouteLine);
+                        const startPt = turf.point(coords[0]);
+                        const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
+                        const distFromStartKm = turf.length(ptSlice, { units: 'kilometers' });
+
+                        const schedHours = parseInt(targetTimeStr.substring(0, 2), 10);
+                        const schedMins = parseInt(targetTimeStr.substring(2, 4), 10);
+                        const now = new Date();
+                        const schedTime = new Date(now);
+                        schedTime.setHours(schedHours, schedMins, 0, 0);
+
+                        let diffMins = Math.round((schedTime - now) / 60000);
+                        const formattedTime = `${targetTimeStr.substring(0, 2)}${targetTimeStr.substring(2, 4)}`;
+
+                        if (globalRunnerSpeedKmPerMin > 0.01 && globalRunnerTraveledKm > 0.1) {
+                            const remainingDistKm = Math.max(0, distFromStartKm - globalRunnerTraveledKm);
+                            const liveRemMins = Math.round(remainingDistKm / globalRunnerSpeedKmPerMin);
+                            etaDisplay = `${liveRemMins} mins (${formattedTime})`;
+                        } else {
+                            if (diffMins > 0) {
+                                etaDisplay = `${diffMins} mins (${formattedTime})`;
+                            } else if (diffMins === 0) {
+                                etaDisplay = `Now (${formattedTime})`;
+                            } else {
+                                etaDisplay = `${Math.abs(diffMins)} mins ago (${formattedTime})`;
+                            }
+                        }
+                    } catch (e) {
+                        // fallback
+                    }
+                }
+
+                let cleanLocationName = displayName.length > 5 ? displayName.substring(5) : displayName;
+
+                const popupHtml =
+                    `<b>${cleanLocationName}</b><br>` +
+                    `ETA: ${etaDisplay}<br>` +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
+
+                const pointMarker = L.circleMarker([lat, lon], {
+                    radius: isCheckpoint ? 7 : 6,
+                    color: pt.c || (isCheckpoint ? '#f44034' : '#9c27b0'),
+                    fillColor: pt.c || (isCheckpoint ? '#f44034' : '#ba68c8'),
+                    fillOpacity: isCheckpoint ? 0.9 : 0.8
+                })
+                .addTo(map)
+                .bindPopup(popupHtml)
+                .bindTooltip(
+                    `<b>${displayName}</b>`,
+                    {
+                        permanent: true,
+                        direction: isCheckpoint ? 'top' : 'bottom',
+                        offset: isCheckpoint ? [0, -5] : [0, 5]
+                    }
+                );
+
+                pointLayers.push(pointMarker);
+                parsedPoints.push({ lat, lon, name: cleanLocationName, timeStr: targetTimeStr, type: pt.point_type });
+            });
+        }
+
+        function applyTimeOffset() {
+            const offsetInput = document.getElementById('timeOffset');
+            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
+            
+            localStorage.setItem('checkpointTimeOffset', offsetMinutes);
+
+            renderPoints();
+            toggleLabels();
+
+            if (marker) updateTracker();
+        }
+
+        function resetTimeOffset() {
+            const input = document.getElementById('timeOffset');
+            if (input) {
+                input.value = 0;
+            }
+            applyTimeOffset();
+        }
+
+        async function loadPoints() {
+            try {
+                const response = await fetch('points.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const json = await response.json();
+
+                if (json.success && Array.isArray(json.data)) {
+                    rawPointsData = json.data;
+                    
+                    const savedOffset = localStorage.getItem('checkpointTimeOffset');
+                    if (savedOffset !== null) {
+                        const input = document.getElementById('timeOffset');
+                        if (input) input.value = savedOffset;
+                    }
+
+                    renderPoints();
+                    toggleLabels();
+                }
+            } catch (error) {
+                console.error('Error loading points:', error);
+            }
+        }
+
+        function toggleLabels() {
+            const checkbox = document.getElementById('toggle-labels');
+            if (!checkbox) return;
+            const show = checkbox.checked;
+            pointLayers.forEach(layer => {
+                if (show) layer.openTooltip();
+                else layer.closeTooltip();
+            });
+        }
+
+        async function updateTracker() {
+            try {
+                const response = await fetch('team5535_live.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const json = await response.json();
+
+                if (!json || json.success !== true || !json.data || typeof json.data.ll !== 'string') {
+                    throw new Error('Unexpected tracking JSON structure');
+                }
+
+                const rawLl = json.data.ll;
+                const parts = rawLl.split(',').map(Number);
+                if (parts.length !== 2 || !Number.isFinite(parts[0]) || !Number.isFinite(parts[1])) {
+                    throw new Error('Invalid coordinates');
+                }
+
+                const lat = parts[0];
+                const lon = parts[1];
+                const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+
+                const coordsChanged = (rawLl !== lastKnownCoords);
+                if (coordsChanged) {
+                    lastKnownCoords = rawLl;
+
+                    if (cleanRouteLine && typeof turf !== 'undefined') {
+                        try {
+                            const runnerPt = turf.point([lon, lat]);
+                            const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
+                            
+                            const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
+                            const coords = turf.getCoords(cleanRouteLine);
+                            const startPt = turf.point(coords[0]);
+                            const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
+                            globalRunnerTraveledKm = turf.length(traveledSlice, { units: 'kilometers' });
+                            const remainingKm = Math.max(0, totalRouteKm - globalRunnerTraveledKm);
+                            
+                            lastCachedPopupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
+
+                            const now = new Date();
+                            if (parsedPoints.length > 0 && parsedPoints[0].timeStr) {
+                                const startHm = parsedPoints[0].timeStr;
+                                const startTime = new Date(now);
+                                startTime.setHours(parseInt(startHm.substring(0, 2), 10), parseInt(startHm.substring(2, 4), 10), 0, 0);
+
+                                const elapsedMins = (now - startTime) / 60000;
+                                if (elapsedMins > 2 && globalRunnerTraveledKm > 0.1) {
+                                    globalRunnerSpeedKmPerMin = globalRunnerTraveledKm / elapsedMins;
+                                }
+                            }
+
+                            let closestUpcoming = null;
+                            let minDistanceAlongRoute = Infinity;
+
+                            parsedPoints.forEach(pt => {
+                                const ptPt = turf.point([pt.lon, pt.lat]);
+                                const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                                const sliced = turf.lineSlice(snappedRunner, snappedPt, cleanRouteLine);
+                                const distKm = turf.length(sliced, { units: 'kilometers' });
+
+                                if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
+                                    minDistanceAlongRoute = distKm;
+                                    
+                                    closestUpcoming = {
+                                        name: pt.name,
+ 
