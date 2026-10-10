@@ -290,7 +290,7 @@
                 if (coords.length > 0) startPt = turf.point(coords[0]);
             }
 
-            rawPointsData.forEach(pt => {
+            rawPointsData.forEach((pt, index) => {
                 const lat = Number(pt.la);
                 const lon = Number(pt.lo);
 
@@ -308,15 +308,18 @@
 
                 let targetTimeStr = null;
                 let cleanLocationName = displayName;
+                
+                // Exception: Check if this is the final point in points.json (the finish line)
+                const isFinalPoint = (index === rawPointsData.length - 1);
 
                 if (match) {
                     const originalTime = match[1];
                     const textDescription = match[2];
                     cleanLocationName = textDescription.trim();
 
-                    // Check if this point has already been passed by the runner
+                    // Check if this point has already been passed by the runner (Skip for final finish point)
                     let isPassed = false;
-                    if (cleanRouteLine && startPt && currentRunnerDistFromStart > 0 && typeof turf !== 'undefined') {
+                    if (!isFinalPoint && cleanRouteLine && startPt && currentRunnerDistFromStart > 0 && typeof turf !== 'undefined') {
                         try {
                             const ptPt = turf.point([lon, lat]);
                             const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
@@ -333,7 +336,7 @@
                     }
 
                     if (isPassed) {
-                        // If already locked in storage, use it. Otherwise lock it with current offset (or fallback to original if blank)
+                        // If already locked in storage, use it. Otherwise lock it with current offset
                         if (lockedTargets[cleanLocationName]) {
                             targetTimeStr = lockedTargets[cleanLocationName];
                         } else {
@@ -342,7 +345,7 @@
                             localStorage.setItem('lockedPassedTargets', JSON.stringify(lockedTargets));
                         }
                     } else {
-                        // Not passed yet, calculate dynamically based on current offset slider
+                        // Not passed yet (or it's the final finish point), calculate dynamically based on offset slider
                         targetTimeStr = adjustTimeString(originalTime, offsetMinutes);
                     }
 
@@ -369,7 +372,7 @@
 
                     const effectiveSpeed = currentGlobalSpeedKmPerMin > 0.001 ? currentGlobalSpeedKmPerMin : lastKnownMovingSpeedKmPerMin;
 
-                    if (cleanRouteLine && effectiveSpeed > 0.001 && currentRunnerDistFromStart > 0 && startPt && typeof turf !== 'undefined') {
+                    if (!isFinalPoint && cleanRouteLine && effectiveSpeed > 0.001 && currentRunnerDistFromStart > 0 && startPt && typeof turf !== 'undefined') {
                         try {
                             const ptPt = turf.point([lon, lat]);
                             const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
@@ -378,6 +381,23 @@
 
                             const remainingDistKm = ptDistFromStart - currentRunnerDistFromStart;
 
+                            if (remainingDistKm > 0) {
+                                const liveRemMins = Math.round(remainingDistKm / effectiveSpeed);
+                                const liveEtaDate = new Date(now.getTime() + liveRemMins * 60000);
+                                const liveEtaTimeStr = liveEtaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '');
+                                etaDisplay = `${liveRemMins} mins (${liveEtaTimeStr})`;
+                            } else {
+                                etaDisplay = 'Passed';
+                            }
+                        } catch (e) {
+                            let diffMins = Math.round((schedTime - now) / 60000);
+                            etaDisplay = diffMins >= 0 ? `${diffMins} mins (${formattedSchedTime})` : `${Math.abs(diffMins)} mins ago (${formattedSchedTime})`;
+                        }
+                    } else if (isFinalPoint && cleanRouteLine && effectiveSpeed > 0.001 && currentRunnerDistFromStart > 0 && startPt && typeof turf !== 'undefined') {
+                        // For the final point, calculate live ETA even though it shares the start location coordinate
+                        try {
+                            const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
+                            const remainingDistKm = Math.max(0, totalRouteKm - currentRunnerDistFromStart);
                             if (remainingDistKm > 0) {
                                 const liveRemMins = Math.round(remainingDistKm / effectiveSpeed);
                                 const liveEtaDate = new Date(now.getTime() + liveRemMins * 60000);
@@ -516,13 +536,13 @@
                     lastTrackerUpdateTime = now;
                 }
 
-                // Check if the runner has finished by inspecting the splits for a "Freedom" entry with a valid finish time
+                // Check if the runner has finished by inspecting the splits for a finish entry with a valid finish time
                 let finishTimeStr = null;
                 let raceTimeStr = null;
                 if (json.data.splits && Array.isArray(json.data.splits)) {
-                    const finishSplit = json.data.splits.find(s => s.n && s.n.toLowerCase() === 'freedom' && s.t);
+                    // Look for the last split or a split marked as finish
+                    const finishSplit = json.data.splits.slice().reverse().find(s => s.t && (s.ct === 'finish' || (s.n && s.n.toLowerCase().includes('finish'))));
                     if (finishSplit) {
-                        // e.g. "Sat 12:40:24" -> strip day prefix to get "12:40:24"
                         const rawTime = finishSplit.t;
                         const timeMatch = rawTime.match(/(\d{2}:\d{2}:\d{2})/);
                         if (timeMatch) {
@@ -617,7 +637,6 @@
                 renderPoints();
                 toggleLabels();
 
-                // If finished, we can also append speed/status if wanted, or keep it clean
                 if (finishTimeStr) {
                     statsHtml += `<b>Speed:</b> ${speedDisplay}<br>`;
                 }
