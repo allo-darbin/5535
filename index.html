@@ -216,6 +216,8 @@
         let globalRunnerTraveledKm = 0;
         let userClosedPopup = false;
         let lastTrackerUpdateTime = null;
+        let currentGlobalSpeedKmPerMin = 0;
+        let currentRunnerDistFromStart = 0;
 
         function extractLineString(geoJson) {
             try {
@@ -306,8 +308,33 @@
                     const formattedSchedTime = `${targetTimeStr.substring(0, 2)}${targetTimeStr.substring(2, 4)}`;
                     schedDisplay = formattedSchedTime;
 
-                    let diffMins = Math.round((schedTime - now) / 60000);
-                    etaDisplay = diffMins >= 0 ? `${diffMins} mins (${formattedSchedTime})` : `${Math.abs(diffMins)} mins ago (${formattedSchedTime})`;
+                    if (cleanRouteLine && currentGlobalSpeedKmPerMin > 0.001 && currentRunnerDistFromStart > 0 && typeof turf !== 'undefined') {
+                        try {
+                            const ptPt = turf.point([lon, lat]);
+                            const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                            const coords = turf.getCoords(cleanRouteLine);
+                            const startPt = turf.point(coords[0]);
+                            const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
+                            const ptDistFromStart = turf.length(ptSlice, { units: 'kilometers' });
+
+                            const remainingDistKm = ptDistFromStart - currentRunnerDistFromStart;
+
+                            if (remainingDistKm > 0) {
+                                const liveRemMins = Math.round(remainingDistKm / currentGlobalSpeedKmPerMin);
+                                const liveEtaDate = new Date(now.getTime() + liveRemMins * 60000);
+                                const liveEtaTimeStr = liveEtaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '');
+                                etaDisplay = `${liveRemMins} mins (${liveEtaTimeStr})`;
+                            } else {
+                                etaDisplay = 'Passed';
+                            }
+                        } catch (e) {
+                            let diffMins = Math.round((schedTime - now) / 60000);
+                            etaDisplay = diffMins >= 0 ? `${diffMins} mins (${formattedSchedTime})` : `${Math.abs(diffMins)} mins ago (${formattedSchedTime})`;
+                        }
+                    } else {
+                        let diffMins = Math.round((schedTime - now) / 60000);
+                        etaDisplay = diffMins >= 0 ? `${diffMins} mins (${formattedSchedTime})` : `${Math.abs(diffMins)} mins ago (${formattedSchedTime})`;
+                    }
                 }
 
                 let cleanLocationName = displayName.length > 5 ? displayName.substring(5) : displayName;
@@ -412,31 +439,14 @@
                 // Read speed directly from JSON (e.g., "3.50" kph)
                 const reportedSpeedKphRaw = json.data.sp;
                 const reportedSpeedKph = parseFloat(reportedSpeedKphRaw);
-                const speedKmPerMin = (Number.isFinite(reportedSpeedKph) && reportedSpeedKph > 0) ? (reportedSpeedKph / 60) : 0;
+                currentGlobalSpeedKmPerMin = (Number.isFinite(reportedSpeedKph) && reportedSpeedKph > 0) ? (reportedSpeedKph / 60) : 0;
                 
-                // Format speed string for the popup
                 const speedDisplay = reportedSpeedKphRaw ? `${reportedSpeedKphRaw} km/h` : 'N/A';
 
                 const coordsChanged = (rawLl !== lastKnownCoords);
                 if (coordsChanged) {
                     lastTrackerUpdateTime = now;
                     lastKnownCoords = rawLl;
-
-                    if (cleanRouteLine && typeof turf !== 'undefined') {
-                        try {
-                            const runnerPt = turf.point([lon, lat]);
-                            const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
-                            const coords = turf.getCoords(cleanRouteLine);
-                            const startPt = turf.point(coords[0]);
-                            const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
-                            globalRunnerTraveledKm = turf.length(traveledSlice, { units: 'kilometers' });
-                        } catch (err) {
-                            console.error("Route calculation error:", err);
-                        }
-                    }
-
-                    renderPoints();
-                    toggleLabels();
                 } else if (!lastTrackerUpdateTime) {
                     lastTrackerUpdateTime = now;
                 }
@@ -452,8 +462,8 @@
                         const coords = turf.getCoords(cleanRouteLine);
                         const startPt = turf.point(coords[0]);
                         const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
-                        const runnerDistFromStart = turf.length(traveledSlice, { units: 'kilometers' });
-                        const remainingKm = Math.max(0, totalRouteKm - runnerDistFromStart);
+                        currentRunnerDistFromStart = turf.length(traveledSlice, { units: 'kilometers' });
+                        const remainingKm = Math.max(0, totalRouteKm - currentRunnerDistFromStart);
 
                         popupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
 
@@ -465,7 +475,7 @@
                             const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
                             const ptDistFromStart = turf.length(ptSlice, { units: 'kilometers' });
 
-                            const distKm = ptDistFromStart - runnerDistFromStart;
+                            const distKm = ptDistFromStart - currentRunnerDistFromStart;
 
                             if (distKm > 0.05) {
                                 closestUpcoming = {
@@ -494,8 +504,8 @@
                                 let diffMins = Math.round((schedTime - now) / 60000);
                                 etaString = diffMins >= 0 ? `${diffMins} mins (${formattedTime})` : `${Math.abs(diffMins)} mins ago (${formattedTime})`;
 
-                                if (speedKmPerMin > 0.001) {
-                                    const liveRemMins = Math.round(closestUpcoming.distanceKm / speedKmPerMin);
+                                if (currentGlobalSpeedKmPerMin > 0.001) {
+                                    const liveRemMins = Math.round(closestUpcoming.distanceKm / currentGlobalSpeedKmPerMin);
                                     const liveEtaDate = new Date(now.getTime() + liveRemMins * 60000);
                                     const liveEtaTimeStr = liveEtaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '');
                                     etaString = `${liveRemMins} mins (${liveEtaTimeStr})`;
@@ -511,7 +521,10 @@
                     }
                 }
 
-                // Append the Speed line right before the Google Maps link
+                // Re-render points whenever tracker updates so their ETAs use the latest speed
+                renderPoints();
+                toggleLabels();
+
                 statsHtml += `<b>Speed:</b> ${speedDisplay}<br>`;
 
                 const popupContent =
