@@ -588,7 +588,7 @@
 
                                 const distKm = ptDistFromStart - currentRunnerDistFromStart;
 
-                                if (distKm > 0.05) {
+                                if (distKm > 0) {
                                     closestUpcoming = {
                                         name: pt.name,
                                         distanceKm: distKm,
@@ -597,6 +597,23 @@
                                     };
                                     break;
                                 }
+                            }
+
+                            // FALLBACK: If all intermediate checkpoints have been passed, use the final point in parsedPoints as the target
+                            if (!closestUpcoming && parsedPoints.length > 0) {
+                                const lastPt = parsedPoints[parsedPoints.length - 1];
+                                const ptPt = turf.point([lastPt.lon, lastPt.lat]);
+                                const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                                const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
+                                const ptDistFromStart = turf.length(ptSlice, { units: 'kilometers' });
+                                const distKm = Math.max(0, ptDistFromStart - currentRunnerDistFromStart);
+
+                                closestUpcoming = {
+                                    name: lastPt.name,
+                                    distanceKm: distKm,
+                                    timeStr: lastPt.timeStr,
+                                    type: lastPt.type
+                                };
                             }
 
                             if (closestUpcoming) {
@@ -628,7 +645,6 @@
                                              `<b>Speed:</b> ${speedDisplay}<br>` +
                                              `<i>Your target: ${schedString}</i><br>`;
                             } else {
-                                // Fallback if past all listed waypoints but not officially flagged finished yet
                                 statsHtml = `<b>Speed:</b> ${speedDisplay}<br>`;
                             }
                         } catch (err) {
