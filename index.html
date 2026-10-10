@@ -51,19 +51,14 @@
             border-color: #c8e6c9;
         }
 
-        /* Prevent layer control from overlapping zoom +/- buttons */
-        .leaflet-top.leaflet-left .leaflet-control-layers {
-            margin-top: 10px;
-        }
-
         /* Compact, mobile-friendly Centered Bottom Panel */
         .bottom-panel {
             position: absolute;
             bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.9);
+            z-index: 999;
+            background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(4px);
             padding: 6px 12px;
             border-radius: 8px;
