@@ -174,7 +174,7 @@
             });
         });
 
-        // 1. Initialise base maps and layer switcher.
+        // 1. Initialise base maps and layer switcher with persistence.
         const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
@@ -185,10 +185,14 @@
             attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community'
         });
 
+        // Retrieve saved layer preference, defaulting to osmLayer
+        const savedLayerName = localStorage.getItem('selectedMapLayer');
+        const initialLayer = (savedLayerName === 'Satellite View') ? satelliteLayer : osmLayer;
+
         const map = L.map('map', {
             center: [56.122185, -3.91031],
             zoom: 13,
-            layers: [osmLayer]
+            layers: [initialLayer]
         });
 
         const baseMaps = {
@@ -198,12 +202,24 @@
 
         L.control.layers(baseMaps, null, { position: 'topleft' }).addTo(map);
 
+        // Save preference when user changes layers
+        map.on('baselayerchange', function (e) {
+            localStorage.setItem('selectedMapLayer', e.name);
+        });
+
         let marker = null;
         let pointLayers = [];
         let rawPointsData = [];
         let parsedPoints = [];
         let firstPositionReceived = false;
         let cleanRouteLine = null; // Clean single LineString for Turf
+
+        // Tracking state for coordinate change detection
+        let lastKnownCoords = null;
+        let globalRunnerSpeedKmPerMin = 0;
+        let globalRunnerTraveledKm = 0;
+        let lastCachedPopupTitle = '';
+        let lastCachedStatsHtml = '';
 
         // Helper to extract clean single LineString from any complex GeoJSON/KML structure
         function extractLineString(geoJson) {
@@ -286,6 +302,51 @@
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
                 const isCheckpoint = pt.point_type === 'checkpoint';
 
+                let etaDisplay = targetTimeStr ? `${targetTimeStr.substring(0, 2)}:${targetTimeStr.substring(2, 4)}` : 'TBD';
+                
+                if (cleanRouteLine && targetTimeStr && typeof turf !== 'undefined') {
+                    try {
+                        const ptPt = turf.point([lon, lat]);
+                        const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                        const coords = turf.getCoords(cleanRouteLine);
+                        const startPt = turf.point(coords[0]);
+                        const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
+                        const distFromStartKm = turf.length(ptSlice, { units: 'kilometers' });
+
+                        const schedHours = parseInt(targetTimeStr.substring(0, 2), 10);
+                        const schedMins = parseInt(targetTimeStr.substring(2, 4), 10);
+                        const now = new Date();
+                        const schedTime = new Date(now);
+                        schedTime.setHours(schedHours, schedMins, 0, 0);
+
+                        let diffMins = Math.round((schedTime - now) / 60000);
+                        const formattedTime = `${targetTimeStr.substring(0, 2)}${targetTimeStr.substring(2, 4)}`;
+
+                        if (globalRunnerSpeedKmPerMin > 0.01 && globalRunnerTraveledKm > 0.1) {
+                            const remainingDistKm = Math.max(0, distFromStartKm - globalRunnerTraveledKm);
+                            const liveRemMins = Math.round(remainingDistKm / globalRunnerSpeedKmPerMin);
+                            etaDisplay = `${liveRemMins} mins (${formattedTime})`;
+                        } else {
+                            if (diffMins > 0) {
+                                etaDisplay = `${diffMins} mins (${formattedTime})`;
+                            } else if (diffMins === 0) {
+                                etaDisplay = `Now (${formattedTime})`;
+                            } else {
+                                etaDisplay = `${Math.abs(diffMins)} mins ago (${formattedTime})`;
+                            }
+                        }
+                    } catch (e) {
+                        // fallback
+                    }
+                }
+
+                let cleanLocationName = displayName.length > 5 ? displayName.substring(5) : displayName;
+
+                const popupHtml =
+                    `<b>${cleanLocationName}</b><br>` +
+                    `ETA: ${etaDisplay}<br>` +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
+
                 const pointMarker = L.circleMarker([lat, lon], {
                     radius: isCheckpoint ? 7 : 6,
                     color: pt.c || (isCheckpoint ? '#f44034' : '#9c27b0'),
@@ -293,12 +354,7 @@
                     fillOpacity: isCheckpoint ? 0.9 : 0.8
                 })
                 .addTo(map)
-                .bindPopup(
-                    `<b>${displayName}</b><br>` +
-                    `<small>(${isCheckpoint ? 'Checkpoint' : 'Cheerpoint'})</small><br>` +
-                    `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
-                    `📍 Open in Google Maps</a>`
-                )
+                .bindPopup(popupHtml)
                 .bindTooltip(
                     `<b>${displayName}</b>`,
                     {
@@ -309,7 +365,7 @@
                 );
 
                 pointLayers.push(pointMarker);
-                parsedPoints.push({ lat, lon, name: displayName, timeStr: targetTimeStr, type: pt.point_type });
+                parsedPoints.push({ lat, lon, name: cleanLocationName, timeStr: targetTimeStr, type: pt.point_type });
             });
         }
 
@@ -374,7 +430,7 @@
             });
         }
 
-        // 4. Fetch and display the latest racer position with distance to go & ETA
+        // 4. Fetch and display the latest racer position
         async function updateTracker() {
             try {
                 const response = await fetch(
@@ -398,7 +454,8 @@
                 }
 
                 const teamData = json.data;
-                const parts = teamData.ll.split(',').map(Number);
+                const rawLl = teamData.ll;
+                const parts = rawLl.split(',').map(Number);
 
                 if (
                     parts.length !== 2 ||
@@ -407,91 +464,142 @@
                     Math.abs(parts[0]) > 90 ||
                     Math.abs(parts[1]) > 180
                 ) {
-                    throw new Error('Invalid latitude/longitude: ' + teamData.ll);
+                    throw new Error('Invalid latitude/longitude: ' + rawLl);
                 }
 
                 const lat = parts[0];
                 const lon = parts[1];
-
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 
-                let popupTitle = '';
-                let statsHtml = '';
+                const coordsChanged = (rawLl !== lastKnownCoords);
+                if (coordsChanged) {
+                    lastKnownCoords = rawLl;
 
-                if (cleanRouteLine && typeof turf !== 'undefined') {
-                    try {
-                        const runnerPt = turf.point([lon, lat]);
-                        const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
-                        
-                        // Distance to go calculations
-                        const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
-                        const coords = turf.getCoords(cleanRouteLine);
-                        const startPt = turf.point(coords[0]);
-                        const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
-                        const traveledKm = turf.length(traveledSlice, { units: 'kilometers' });
-                        const remainingKm = Math.max(0, totalRouteKm - traveledKm);
-                        
-                        popupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
+                    if (cleanRouteLine && typeof turf !== 'undefined') {
+                        try {
+                            const runnerPt = turf.point([lon, lat]);
+                            const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
+                            
+                            const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
+                            const coords = turf.getCoords(cleanRouteLine);
+                            const startPt = turf.point(coords[0]);
+                            const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
+                            globalRunnerTraveledKm = turf.length(traveledSlice, { units: 'kilometers' });
+                            const remainingKm = Math.max(0, totalRouteKm - globalRunnerTraveledKm);
+                            
+                            lastCachedPopupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
 
-                        // Find next upcoming point & distance/ETA
-                        let closestUpcoming = null;
-                        let minDistanceAlongRoute = Infinity;
-
-                        parsedPoints.forEach(pt => {
-                            const ptPt = turf.point([pt.lon, pt.lat]);
-                            const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
-                            const sliced = turf.lineSlice(snappedRunner, snappedPt, cleanRouteLine);
-                            const distKm = turf.length(sliced, { units: 'kilometers' });
-
-                            if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
-                                minDistanceAlongRoute = distKm;
-                                
-                                let cleanName = pt.name;
-                                const timeMatch = cleanName.match(/^\d{4}\s+(.*)$/);
-                                if (timeMatch) {
-                                    cleanName = timeMatch[1];
-                                }
-
-                                closestUpcoming = {
-                                    name: cleanName,
-                                    distanceKm: distKm,
-                                    timeStr: pt.timeStr,
-                                    type: pt.type
-                                };
-                            }
-                        });
-
-                        if (closestUpcoming) {
                             const now = new Date();
-                            let etaString = 'TBD';
+                            if (parsedPoints.length > 0 && parsedPoints[0].timeStr) {
+                                const startHm = parsedPoints[0].timeStr;
+                                const startTime = new Date(now);
+                                startTime.setHours(parseInt(startHm.substring(0, 2), 10), parseInt(startHm.substring(2, 4), 10), 0, 0);
 
-                            if (closestUpcoming.timeStr) {
-                                const schedHours = parseInt(closestUpcoming.timeStr.substring(0, 2), 10);
-                                const schedMins = parseInt(closestUpcoming.timeStr.substring(2, 4), 10);
-                                const schedTime = new Date(now);
-                                schedTime.setHours(schedHours, schedMins, 0, 0);
+                                const elapsedMins = (now - startTime) / 60000;
+                                if (elapsedMins > 2 && globalRunnerTraveledKm > 0.1) {
+                                    globalRunnerSpeedKmPerMin = globalRunnerTraveledKm / elapsedMins;
+                                }
+                            }
 
-                                const diffMins = Math.round((schedTime - now) / 60000);
-                                const formattedTime = `${closestUpcoming.timeStr.substring(0, 2)}${closestUpcoming.timeStr.substring(2, 4)}`;
+                            let closestUpcoming = null;
+                            let minDistanceAlongRoute = Infinity;
 
-                                if (diffMins > 0) {
-                                    etaString = `${diffMins} mins (${formattedTime})`;
-                                } else if (diffMins === 0) {
-                                    etaString = `Now (${formattedTime})`;
-                                } else {
-                                    etaString = `${Math.abs(diffMins)} mins ago (${formattedTime})`;
+                            parsedPoints.forEach(pt => {
+                                const ptPt = turf.point([pt.lon, pt.lat]);
+                                const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                                const sliced = turf.lineSlice(snappedRunner, snappedPt, cleanRouteLine);
+                                const distKm = turf.length(sliced, { units: 'kilometers' });
+
+                                if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
+                                    minDistanceAlongRoute = distKm;
+                                    
+                                    closestUpcoming = {
+                                        name: pt.name,
+                                        distanceKm: distKm,
+                                        timeStr: pt.timeStr,
+                                        type: pt.type
+                                    };
+                                }
+                            });
+
+                            lastCachedStatsHtml = '';
+                            if (closestUpcoming) {
+                                let etaString = 'TBD';
+
+                                if (closestUpcoming.timeStr) {
+                                    const schedHours = parseInt(closestUpcoming.timeStr.substring(0, 2), 10);
+                                    const schedMins = parseInt(closestUpcoming.timeStr.substring(2, 4), 10);
+                                    const schedTime = new Date(now);
+                                    schedTime.setHours(schedHours, schedMins, 0, 0);
+
+                                    const diffMins = Math.round((schedTime - now) / 60000);
+                                    const formattedTime = `${closestUpcoming.timeStr.substring(0, 2)}${closestUpcoming.timeStr.substring(2, 4)}`;
+
+                                    if (diffMins > 0) {
+                                        etaString = `${diffMins} mins (${formattedTime})`;
+                                    } else if (diffMins === 0) {
+                                        etaString = `Now (${formattedTime})`;
+                                    } else {
+                                        etaString = `${Math.abs(diffMins)} mins ago (${formattedTime})`;
+                                    }
+
+                                    if (globalRunnerSpeedKmPerMin > 0.01) {
+                                        const liveRemMins = Math.round(closestUpcoming.distanceKm / globalRunnerSpeedKmPerMin);
+                                        etaString = `${liveRemMins} mins (${formattedTime})`;
+                                    }
                                 }
 
-                                if (parsedPoints.length > 0 && parsedPoints[0].timeStr) {
-                                    const startHm = parsedPoints[0].timeStr;
-                                    const startTime = new Date(now);
-                                    startTime.setHours(parseInt(startHm.substring(0, 2), 10), parseInt(startHm.substring(2, 4), 10), 0, 0);
+                                lastCachedStatsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
+                                                      `<b>ETA:</b> ${etaString}<br>`;
+                            }
+                        } catch (err) {
+                            console.error("Calculation error handled safely:", err);
+                        }
+                    }
+                }
 
-                                    const elapsedMins = (now - startTime) / 60000;
-                                    if (elapsedMins > 2 && traveledKm > 0.1) {
-                                        const speedKmPerMin = traveledKm / elapsedMins;
-                                        if (speedKmPerMin > 0.01) {
-                                            const liveRemMins = Math.round(closestUpcoming.distanceKm / speedKmPerMin);
-                                            etaString = `${liveRemMins} mins (${formattedTime})`;
-                                        }
-           
+                const popupContent =
+                    lastCachedPopupTitle +
+                    lastCachedStatsHtml +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
+
+                if (!marker) {
+                    const runnerIcon = L.divIcon({
+                        className: 'racer-icon',
+                        html: '🏃',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                        popupAnchor: [0, -18]
+                    });
+                    marker = L.marker([lat, lon], { icon: runnerIcon }).addTo(map);
+                    marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
+                    marker.openPopup();
+                    
+                    map.setView([lat, lon], 14);
+                    firstPositionReceived = true;
+                } else {
+                    marker.setLatLng([lat, lon]);
+                    marker.getPopup().setContent(popupContent);
+                    if (!marker.isPopupOpen()) {
+                        marker.openPopup();
+                    }
+                }
+
+                const statusEl = document.getElementById('last-update');
+                if (statusEl) {
+                    const now = new Date();
+                    statusEl.innerText = `Last updated: ${now.toLocaleTimeString()}`;
+                }
+            } catch (error) {
+                console.error('Error updating tracker:', error);
+            }
+        }
+
+        // Initialize application
+        loadPoints().then(() => {
+            updateTracker();
+            setInterval(updateTracker, 15000); // Poll every 15 seconds
+        });
+    </script>
+</body>
+</html>
