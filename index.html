@@ -394,7 +394,6 @@
                             etaDisplay = diffMins >= 0 ? `${diffMins} mins (${formattedSchedTime})` : `${Math.abs(diffMins)} mins ago (${formattedSchedTime})`;
                         }
                     } else if (isFinalPoint && cleanRouteLine && effectiveSpeed > 0.001 && currentRunnerDistFromStart > 0 && startPt && typeof turf !== 'undefined') {
-                        // For the final point, calculate live ETA even though it shares the start location coordinate
                         try {
                             const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
                             const remainingDistKm = Math.max(0, totalRouteKm - currentRunnerDistFromStart);
@@ -447,9 +446,10 @@
 
         function applyTimeOffset() {
             const offsetInput = document.getElementById('timeOffset');
-            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
+            const offsetMinutes = offsetInput ? (parseInt(input.value) || 0) : 0; // Fixed input check below
             
-            localStorage.setItem('checkpointTimeOffset', offsetMinutes);
+            const offsetVal = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
+            localStorage.setItem('checkpointTimeOffset', offsetVal);
 
             updateOffsetStyle();
             renderPoints();
@@ -540,7 +540,6 @@
                 let finishTimeStr = null;
                 let raceTimeStr = null;
                 if (json.data.splits && Array.isArray(json.data.splits)) {
-                    // Look for the last split or a split marked as finish
                     const finishSplit = json.data.splits.slice().reverse().find(s => s.t && (s.ct === 'finish' || (s.n && s.n.toLowerCase().includes('finish'))));
                     if (finishSplit) {
                         const rawTime = finishSplit.t;
@@ -562,7 +561,7 @@
                 let statsHtml = '';
 
                 if (finishTimeStr) {
-                    // Runner has finished! Show finish details instead of remaining distance & next waypoint
+                    // Runner has finished! Show finish details without speed
                     popupTitle = `<b>Finished at ${finishTimeStr}</b><br>` +
                                  `Race time: ${raceTimeStr || 'N/A'}<br>`;
                 } else if (cleanRouteLine && typeof turf !== 'undefined') {
@@ -636,10 +635,6 @@
                 // Re-render points using the effective speed and locked past targets
                 renderPoints();
                 toggleLabels();
-
-                if (finishTimeStr) {
-                    statsHtml += `<b>Speed:</b> ${speedDisplay}<br>`;
-                }
 
                 const popupContent =
                     popupTitle +
