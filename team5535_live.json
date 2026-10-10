@@ -8,25 +8,25 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "14.10",
+    "sp": "12.10",
     "a": 0,
     "cl": "",
     "d": null,
-    "lc": "Bannockburn",
-    "ll": "56.104890,-3.954520",
+    "lc": "King Robert The Bruce",
+    "ll": "56.104388,-3.950778",
     "co": "#2094f3",
     "tco": "#ffffff",
-    "t": "00:31:52",
+    "t": "01:08:45",
     "g": "Team of 3",
     "f": "",
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 08:52",
-    "dt": "2026-10-10 08:52:46",
+    "lt": "10 Oct 26 08:53",
+    "dt": "2026-10-10 08:53:45",
     "fin": 0,
     "ic": null,
-    "b": 92,
+    "b": 91,
     "te": 1,
     "tg": "Male",
     "dw": true,
@@ -72,16 +72,16 @@
         "i": 402115,
         "n": "King Robert The Bruce",
         "ct": "control",
-        "dwell": null,
-        "ds": null,
-        "t": "",
-        "s": "",
-        "ss": 0,
+        "dwell": "00:00:00",
+        "ds": 0,
+        "t": "Sat 08:53:45",
+        "s": "00:36:53",
+        "ss": 2213,
         "p": 0,
         "pt": null,
         "note": "",
-        "v": null,
-        "sss": "00:31:52"
+        "v": "2026-10-10 08:53:45",
+        "sss": "01:08:45"
       },
       {
         "i": 402116,
@@ -96,7 +96,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "00:31:52"
+        "sss": "01:08:45"
       },
       {
         "i": 402117,
@@ -111,7 +111,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "00:31:52"
+        "sss": "01:08:45"
       },
       {
         "i": 402118,
@@ -126,7 +126,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "00:31:52"
+        "sss": "01:08:45"
       },
       {
         "i": 402119,
@@ -141,7 +141,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "00:31:52"
+        "sss": "01:08:45"
       }
     ],
     "mailheader": null,
@@ -151,12 +151,12 @@
     "jg": null,
     "profile": null,
     "details": {
-      "Time Taken": "00:31:52",
-      "Last Timed Location": "Bannockburn",
+      "Time Taken": "01:08:45",
+      "Last Timed Location": "King Robert The Bruce",
       "Group": "Team of 3",
-      "Speed": "14.1 kph",
-      "Battery": "92%",
-      "Last Tracked": "10 Oct 08:52",
+      "Speed": "12.1 kph",
+      "Battery": "91%",
+      "Last Tracked": "10 Oct 08:53",
       "Total Dwell": "00:00:59"
     }
   }
