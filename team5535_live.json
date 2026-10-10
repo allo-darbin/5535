@@ -8,22 +8,22 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "9.80",
+    "sp": "8.00",
     "a": 0,
     "cl": "",
     "d": null,
     "lc": "Stirling Castle",
-    "ll": "56.132095,-3.954871",
+    "ll": "56.131983,-3.956520",
     "co": "#2094f3",
     "tco": "#ffffff",
-    "t": "02:05:36",
+    "t": "02:06:36",
     "g": "Team of 3",
     "f": "",
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 09:50",
-    "dt": "2026-10-10 09:50:36",
+    "lt": "10 Oct 26 09:51",
+    "dt": "2026-10-10 09:51:36",
     "fin": 0,
     "ic": null,
     "b": 89,
@@ -87,16 +87,16 @@
         "i": 402116,
         "n": "Stirling Castle",
         "ct": "control",
-        "dwell": "00:00:00",
-        "ds": 0,
-        "t": "Sat 09:50:36",
-        "s": "00:55:21",
-        "ss": 3321,
+        "dwell": null,
+        "ds": null,
+        "t": "Sat 09:51:36",
+        "s": "00:56:21",
+        "ss": 3381,
         "p": 0,
         "pt": null,
         "note": "",
-        "v": "2026-10-10 09:50:36",
-        "sss": "02:05:36"
+        "v": "2026-10-10 09:51:36",
+        "sss": "02:06:36"
       },
       {
         "i": 402117,
@@ -111,7 +111,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "02:05:36"
+        "sss": "02:06:36"
       },
       {
         "i": 402118,
@@ -126,7 +126,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "02:05:36"
+        "sss": "02:06:36"
       },
       {
         "i": 402119,
@@ -141,7 +141,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "02:05:36"
+        "sss": "02:06:36"
       }
     ],
     "mailheader": null,
@@ -151,12 +151,12 @@
     "jg": null,
     "profile": null,
     "details": {
-      "Time Taken": "02:05:36",
+      "Time Taken": "02:06:36",
       "Last Timed Location": "Stirling Castle",
       "Group": "Team of 3",
-      "Speed": "9.8 kph",
+      "Speed": "8.0 kph",
       "Battery": "89%",
-      "Last Tracked": "10 Oct 09:50",
+      "Last Tracked": "10 Oct 09:51",
       "Total Dwell": "00:03:29"
     }
   }
