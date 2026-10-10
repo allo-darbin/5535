@@ -423,7 +423,6 @@
                         const runnerPt = turf.point([lon, lat]);
                         const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
                         
-                        // Total route length minus distance traveled = distance to go
                         const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
                         const coords = turf.getCoords(cleanRouteLine);
                         const startPt = turf.point(coords[0]);
@@ -433,7 +432,6 @@
                         
                         popupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
 
-                        // Find next upcoming point & distance/ETA
                         let closestUpcoming = null;
                         let minDistanceAlongRoute = Infinity;
 
@@ -446,7 +444,6 @@
                             if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
                                 minDistanceAlongRoute = distKm;
                                 
-                                // Strip out the time prefix (e.g. "0805 ") to leave just the clean waypoint name
                                 let cleanName = pt.name;
                                 const timeMatch = cleanName.match(/^\d{4}\s+(.*)$/);
                                 if (timeMatch) {
@@ -483,7 +480,6 @@
                                     etaString = `${Math.abs(diffMins)} mins ago (${formattedTime})`;
                                 }
 
-                                // If live pace is available, use it to refine the minute countdown
                                 if (parsedPoints.length > 0 && parsedPoints[0].timeStr) {
                                     const startHm = parsedPoints[0].timeStr;
                                     const startTime = new Date(now);
@@ -493,4 +489,11 @@
                                     if (elapsedMins > 2 && traveledKm > 0.1) {
                                         const speedKmPerMin = traveledKm / elapsedMins;
                                         if (speedKmPerMin > 0.01) {
-                     
+                                            const liveRemMins = Math.round(closestUpcoming.distanceKm / speedKmPerMin);
+                                            etaString = `${liveRemMins} mins (${formattedTime})`;
+                                        }
+                                    }
+                                }
+                            }
+
+                          
