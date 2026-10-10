@@ -44,7 +44,7 @@
 
         /* Time offset input styling with gentle background colors */
         .offset-input {
-            width: 55px;
+            width: 50px;
             padding: 4px 6px;
             font-size: 12px;
             border: 1px solid #ddd;
@@ -98,7 +98,7 @@
             margin-top: 10px;
         }
 
-        /* Existing status box in bottom-left corner */
+        /* Status box in bottom-left corner */
         .status-overlay {
             position: absolute;
             bottom: 15px;
@@ -143,9 +143,10 @@
         </label>
         <div style="border-top: 1px solid #eee; padding-top: 8px;">
             <label for="timeOffset" style="display: block; font-size: 11px; margin-bottom: 3px; color: #666;">Time Offset (mins):</label>
-            <div style="display: flex; gap: 6px; align-items: center;">
-                <input type="number" id="timeOffset" value="0" oninput="applyTimeOffset()" class="offset-input">
-                <button onclick="resetTimeOffset()" style="padding: 4px 8px; font-size: 11px; cursor: pointer;">Reset</button>
+            <div style="display: flex; gap: 4px; align-items: center;">
+                <input type="number" id="timeOffset" value="0" oninput="updateOffsetStyle()" onchange="applyTimeOffset()" class="offset-input">
+                <button onclick="applyTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Apply</button>
+                <button onclick="resetTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Reset</button>
             </div>
         </div>
     </div>
@@ -155,7 +156,7 @@
         <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
     </div>
 
-    <!-- Existing bottom-left timestamp container -->
+    <!-- Bottom-left timestamp container -->
     <div id="last-update" class="status-overlay">Tracking active...</div>
 
     <div id="map"></div>
@@ -316,7 +317,7 @@
             parsedPoints = [];
 
             const offsetInput = document.getElementById('timeOffset');
-            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value, 10) || 0) : 0;
+            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
 
             rawPointsData.forEach(pt => {
                 const lat = Number(pt.la);
@@ -408,10 +409,9 @@
             });
         }
 
-        // Auto-applies changes immediately on typing/input
         function applyTimeOffset() {
             const offsetInput = document.getElementById('timeOffset');
-            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value, 10) || 0) : 0;
+            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
             
             localStorage.setItem('checkpointTimeOffset', offsetMinutes);
 
@@ -503,9 +503,148 @@
                     prevLat = lat;
                     prevLon = lon;
                     prevTime = now;
-                    lastTrackerUpdateTime = now;
+                    lastTrackerUpdateTime = now; // Mark time of actual position change
                     lastKnownCoords = rawLl;
 
                     if (cleanRouteLine && typeof turf !== 'undefined') {
                         try {
-                            
+                            const runnerPt = turf.point([lon, lat]);
+                            const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
+                            const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
+                            const coords = turf.getCoords(cleanRouteLine);
+                            const startPt = turf.point(coords[0]);
+                            const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
+                            globalRunnerTraveledKm = turf.length(traveledSlice, { units: 'kilometers' });
+                        } catch (err) {
+                            console.error("Route calculation error:", err);
+                        }
+                    }
+
+                    renderPoints();
+                    toggleLabels();
+                } else if (!lastTrackerUpdateTime) {
+                    lastTrackerUpdateTime = now;
+                }
+
+                let popupTitle = '';
+                let statsHtml = '';
+
+                if (cleanRouteLine && typeof turf !== 'undefined') {
+                    try {
+                        const runnerPt = turf.point([lon, lat]);
+                        const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
+                        const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
+                        const coords = turf.getCoords(cleanRouteLine);
+                        const startPt = turf.point(coords[0]);
+                        const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
+                        const currentTraveledKm = turf.length(traveledSlice, { units: 'kilometers' });
+                        const remainingKm = Math.max(0, totalRouteKm - currentTraveledKm);
+
+                        popupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
+
+                        let closestUpcoming = null;
+                        let minDistanceAlongRoute = Infinity;
+
+                        parsedPoints.forEach(pt => {
+                            const ptPt = turf.point([pt.lon, pt.lat]);
+                            const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                            const sliced = turf.lineSlice(snappedRunner, snappedPt, cleanRouteLine);
+                            const distKm = turf.length(sliced, { units: 'kilometers' });
+
+                            if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
+                                minDistanceAlongRoute = distKm;
+                                closestUpcoming = {
+                                    name: pt.name,
+                                    distanceKm: distKm,
+                                    timeStr: pt.timeStr,
+                                    type: pt.type
+                                };
+                            }
+                        });
+
+                        if (closestUpcoming) {
+                            let etaString = 'TBD';
+                            let schedString = 'TBD';
+
+                            if (closestUpcoming.timeStr) {
+                                const schedHours = parseInt(closestUpcoming.timeStr.substring(0, 2), 10);
+                                const schedMins = parseInt(closestUpcoming.timeStr.substring(2, 4), 10);
+                                const schedTime = new Date(now);
+                                schedTime.setHours(schedHours, schedMins, 0, 0);
+
+                                const formattedTime = `${closestUpcoming.timeStr.substring(0, 2)}${closestUpcoming.timeStr.substring(2, 4)}`;
+                                schedString = formattedTime;
+
+                                let diffMins = Math.round((schedTime - now) / 60000);
+                                etaString = diffMins >= 0 ? `${diffMins} mins (${formattedTime})` : `${Math.abs(diffMins)} mins ago (${formattedTime})`;
+
+                                if (mostRecentSpeedKmPerMin > 0.01) {
+                                    const liveRemMins = Math.round(closestUpcoming.distanceKm / mostRecentSpeedKmPerMin);
+                                    const liveEtaDate = new Date(now.getTime() + liveRemMins * 60000);
+                                    const liveEtaTimeStr = liveEtaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '');
+                                    etaString = `${liveRemMins} mins (${liveEtaTimeStr})`;
+                                }
+                            }
+
+                            statsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
+                                         `<b>ETA:</b> ${etaString}<br>` +
+                                         `<b>Scheduled:</b> ${schedString}<br>`;
+                        }
+                    } catch (err) {
+                        console.error("Calculation error handled safely:", err);
+                    }
+                }
+
+                const popupContent =
+                    popupTitle +
+                    statsHtml +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
+
+                if (!marker) {
+                    const runnerIcon = L.divIcon({
+                        className: 'racer-icon',
+                        html: '🏃',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                        popupAnchor: [0, -18]
+                    });
+                    marker = L.marker([lat, lon], { icon: runnerIcon }).addTo(map);
+                    marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false, autoPan: false });
+                    
+                    marker.on('popupclose', () => { userClosedPopup = true; });
+                    marker.on('popupopen', () => { userClosedPopup = false; });
+
+                    marker.openPopup();
+                    
+                    map.setView([lat, lon], 14);
+                    firstPositionReceived = true;
+                } else {
+                    marker.setLatLng([lat, lon]);
+                    marker.getPopup().setContent(popupContent);
+                    if (!marker.isPopupOpen() && !userClosedPopup) {
+                        marker.openPopup();
+                    }
+                }
+
+                // Render both lines directly inside the existing bottom-left box
+                const statusEl = document.getElementById('last-update');
+                if (statusEl) {
+                    const browserRefreshTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    const trackerTime = lastTrackerUpdateTime ? lastTrackerUpdateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Pending...';
+                    
+                    statusEl.innerHTML = 
+                        `ETAs last updated: ${browserRefreshTime}<br>` +
+                        `Tracker last updated: ${trackerTime}`;
+                }
+            } catch (error) {
+                console.log('Error updating tracker:', error);
+            }
+        }
+
+        loadPoints().then(() => {
+            updateTracker();
+            setInterval(updateTracker, 15000);
+        });
+    </script>
+</body>
+</html>
