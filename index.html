@@ -479,4 +479,94 @@
                                     
                                     closestUpcoming = {
                                         name: pt.name,
- 
+                                        distanceKm: distKm,
+                                        timeStr: pt.timeStr,
+                                        type: pt.type
+                                    };
+                                }
+                            });
+
+                            lastCachedStatsHtml = '';
+                            if (closestUpcoming) {
+                                let etaString = 'TBD';
+
+                                if (closestUpcoming.timeStr) {
+                                    const schedHours = parseInt(closestUpcoming.timeStr.substring(0, 2), 10);
+                                    const schedMins = parseInt(closestUpcoming.timeStr.substring(2, 4), 10);
+                                    const schedTime = new Date(now);
+                                    schedTime.setHours(schedHours, schedMins, 0, 0);
+
+                                    const diffMins = Math.round((schedTime - now) / 60000);
+                                    const formattedTime = `${closestUpcoming.timeStr.substring(0, 2)}${closestUpcoming.timeStr.substring(2, 4)}`;
+
+                                    if (diffMins > 0) {
+                                        etaString = `${diffMins} mins (${formattedTime})`;
+                                    } else if (diffMins === 0) {
+                                        etaString = `Now (${formattedTime})`;
+                                    } else {
+                                        etaString = `${Math.abs(diffMins)} mins ago (${formattedTime})`;
+                                    }
+
+                                    if (globalRunnerSpeedKmPerMin > 0.01) {
+                                        const liveRemMins = Math.round(closestUpcoming.distanceKm / globalRunnerSpeedKmPerMin);
+                                        etaString = `${liveRemMins} mins (${formattedTime})`;
+                                    }
+                                }
+
+                                lastCachedStatsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
+                                                      `<b>ETA:</b> ${etaString}<br>`;
+                            }
+                        } catch (err) {
+                            console.error("Calculation error handled safely:", err);
+                        }
+                    }
+                }
+
+                const popupContent =
+                    lastCachedPopupTitle +
+                    lastCachedStatsHtml +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
+
+                if (!marker) {
+                    const runnerIcon = L.divIcon({
+                        className: 'racer-icon',
+                        html: '🏃',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                        popupAnchor: [0, -18]
+                    });
+                    marker = L.marker([lat, lon], { icon: runnerIcon }).addTo(map);
+                    marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false, autoPan: false });
+                    
+                    marker.on('popupclose', () => { userClosedPopup = true; });
+                    marker.on('popupopen', () => { userClosedPopup = false; });
+
+                    marker.openPopup();
+                    
+                    map.setView([lat, lon], 14);
+                    firstPositionReceived = true;
+                } else {
+                    marker.setLatLng([lat, lon]);
+                    marker.getPopup().setContent(popupContent);
+                    if (!marker.isPopupOpen() && !userClosedPopup) {
+                        marker.openPopup();
+                    }
+                }
+
+                const statusEl = document.getElementById('last-update');
+                if (statusEl) {
+                    const now = new Date();
+                    statusEl.innerText = `Last updated: ${now.toLocaleTimeString()}`;
+                }
+            } catch (error) {
+                console.error('Error updating tracker:', error);
+            }
+        }
+
+        loadPoints().then(() => {
+            updateTracker();
+            setInterval(updateTracker, 15000);
+        });
+    </script>
+</body>
+</html>
