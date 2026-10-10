@@ -205,9 +205,12 @@
         let firstPositionReceived = false;
         let cleanRouteLine = null; // Clean single LineString for Turf
 
-        // Runner metrics for dynamic ETA calculations
+        // Tracking state for coordinate change detection
+        let lastKnownCoords = null;
         let globalRunnerSpeedKmPerMin = 0;
         let globalRunnerTraveledKm = 0;
+        let lastCachedPopupTitle = '';
+        let lastCachedStatsHtml = '';
 
         // Helper to extract clean single LineString from any complex GeoJSON/KML structure
         function extractLineString(geoJson) {
@@ -290,7 +293,6 @@
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
                 const isCheckpoint = pt.point_type === 'checkpoint';
 
-                // Calculate dynamic ETA for this checkpoint popup
                 let etaDisplay = targetTimeStr ? `${targetTimeStr.substring(0, 2)}:${targetTimeStr.substring(2, 4)}` : 'TBD';
                 
                 if (cleanRouteLine && targetTimeStr && typeof turf !== 'undefined') {
@@ -329,11 +331,11 @@
                     }
                 }
 
-                // Strip first 5 characters (e.g. "0805 ") and exclude the cheerpoint line
+                // Strip the first 5 characters (e.g. "0805 ") for the popup body name, keeping full displayName for the toggleable label tooltip
                 let cleanLocationName = displayName.length > 5 ? displayName.substring(5) : displayName;
 
                 const popupHtml =
-                    `<b>${displayName}</b><br>` +
+                    `<b>${cleanLocationName}</b><br>` +
                     `ETA: ${etaDisplay}<br>` +
                     `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
 
@@ -346,7 +348,7 @@
                 .addTo(map)
                 .bindPopup(popupHtml)
                 .bindTooltip(
-                    `<b>${cleanLocationName}</b>`,
+                    `<b>${displayName}</b>`,
                     {
                         permanent: true,
                         direction: isCheckpoint ? 'top' : 'bottom',
@@ -420,7 +422,7 @@
             });
         }
 
-        // 4. Fetch and display the latest racer position with distance to go & ETA
+        // 4. Fetch and display the latest racer position (recalc ETAs only when coordinates change)
         async function updateTracker() {
             try {
                 const response = await fetch(
@@ -444,7 +446,8 @@
                 }
 
                 const teamData = json.data;
-                const parts = teamData.ll.split(',').map(Number);
+                const rawLl = teamData.ll;
+                const parts = rawLl.split(',').map(Number);
 
                 if (
                     parts.length !== 2 ||
@@ -453,111 +456,105 @@
                     Math.abs(parts[0]) > 90 ||
                     Math.abs(parts[1]) > 180
                 ) {
-                    throw new Error('Invalid latitude/longitude: ' + teamData.ll);
+                    throw new Error('Invalid latitude/longitude: ' + rawLl);
                 }
 
                 const lat = parts[0];
                 const lon = parts[1];
-
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 
-                let popupTitle = '';
-                let statsHtml = '';
+                const coordsChanged = (rawLl !== lastKnownCoords);
+                if (coordsChanged) {
+                    lastKnownCoords = rawLl;
 
-                if (cleanRouteLine && typeof turf !== 'undefined') {
-                    try {
-                        const runnerPt = turf.point([lon, lat]);
-                        const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
-                        
-                        const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
-                        const coords = turf.getCoords(cleanRouteLine);
-                        const startPt = turf.point(coords[0]);
-                        const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
-                        globalRunnerTraveledKm = turf.length(traveledSlice, { units: 'kilometers' });
-                        const remainingKm = Math.max(0, totalRouteKm - globalRunnerTraveledKm);
-                        
-                        popupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
+                    if (cleanRouteLine && typeof turf !== 'undefined') {
+                        try {
+                            const runnerPt = turf.point([lon, lat]);
+                            const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
+                            
+                            const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
+                            const coords = turf.getCoords(cleanRouteLine);
+                            const startPt = turf.point(coords[0]);
+                            const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
+                            globalRunnerTraveledKm = turf.length(traveledSlice, { units: 'kilometers' });
+                            const remainingKm = Math.max(0, totalRouteKm - globalRunnerTraveledKm);
+                            
+                            lastCachedPopupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
 
-                        const now = new Date();
-                        if (parsedPoints.length > 0 && parsedPoints[0].timeStr) {
-                            const startHm = parsedPoints[0].timeStr;
-                            const startTime = new Date(now);
-                            startTime.setHours(parseInt(startHm.substring(0, 2), 10), parseInt(startHm.substring(2, 4), 10), 0, 0);
+                            const now = new Date();
+                            if (parsedPoints.length > 0 && parsedPoints[0].timeStr) {
+                                const startHm = parsedPoints[0].timeStr;
+                                const startTime = new Date(now);
+                                startTime.setHours(parseInt(startHm.substring(0, 2), 10), parseInt(startHm.substring(2, 4), 10), 0, 0);
 
-                            const elapsedMins = (now - startTime) / 60000;
-                            if (elapsedMins > 2 && globalRunnerTraveledKm > 0.1) {
-                                globalRunnerSpeedKmPerMin = globalRunnerTraveledKm / elapsedMins;
+                                const elapsedMins = (now - startTime) / 60000;
+                                if (elapsedMins > 2 && globalRunnerTraveledKm > 0.1) {
+                                    globalRunnerSpeedKmPerMin = globalRunnerTraveledKm / elapsedMins;
+                                }
                             }
+
+                            let closestUpcoming = null;
+                            let minDistanceAlongRoute = Infinity;
+
+                            parsedPoints.forEach(pt => {
+                                const ptPt = turf.point([pt.lon, pt.lat]);
+                                const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                                const sliced = turf.lineSlice(snappedRunner, snappedPt, cleanRouteLine);
+                                const distKm = turf.length(sliced, { units: 'kilometers' });
+
+                                if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
+                                    minDistanceAlongRoute = distKm;
+                                    
+                                    closestUpcoming = {
+                                        name: pt.name,
+                                        distanceKm: distKm,
+                                        timeStr: pt.timeStr,
+                                        type: pt.type
+                                    };
+                                }
+                            });
+
+                            lastCachedStatsHtml = '';
+                            if (closestUpcoming) {
+                                let etaString = 'TBD';
+
+                                if (closestUpcoming.timeStr) {
+                                    const schedHours = parseInt(closestUpcoming.timeStr.substring(0, 2), 10);
+                                    const schedMins = parseInt(closestUpcoming.timeStr.substring(2, 4), 10);
+                                    const schedTime = new Date(now);
+                                    schedTime.setHours(schedHours, schedMins, 0, 0);
+
+                                    const diffMins = Math.round((schedTime - now) / 60000);
+                                    const formattedTime = `${closestUpcoming.timeStr.substring(0, 2)}${closestUpcoming.timeStr.substring(2, 4)}`;
+
+                                    if (diffMins > 0) {
+                                        etaString = `${diffMins} mins (${formattedTime})`;
+                                    } else if (diffMins === 0) {
+                                        etaString = `Now (${formattedTime})`;
+                                    } else {
+                                        etaString = `${Math.abs(diffMins)} mins ago (${formattedTime})`;
+                                    }
+
+                                    if (globalRunnerSpeedKmPerMin > 0.01) {
+                                        const liveRemMins = Math.round(closestUpcoming.distanceKm / globalRunnerSpeedKmPerMin);
+                                        etaString = `${liveRemMins} mins (${formattedTime})`;
+                                    }
+                                }
+
+                                lastCachedStatsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
+                                                      `<b>ETA:</b> ${etaString}<br>`;
+                            }
+                        } catch (err) {
+                            console.error("Calculation error handled safely:", err);
                         }
-
-                        // Find next upcoming point & distance/ETA
-                        let closestUpcoming = null;
-                        let minDistanceAlongRoute = Infinity;
-
-                        parsedPoints.forEach(pt => {
-                            const ptPt = turf.point([pt.lon, pt.lat]);
-                            const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
-                            const sliced = turf.lineSlice(snappedRunner, snappedPt, cleanRouteLine);
-                            const distKm = turf.length(sliced, { units: 'kilometers' });
-
-                            if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
-                                minDistanceAlongRoute = distKm;
-                                
-                                let cleanName = pt.name;
-                                const timeMatch = cleanName.match(/^\d{4}\s+(.*)$/);
-                                if (timeMatch) {
-                                    cleanName = timeMatch[1];
-                                }
-
-                                closestUpcoming = {
-                                    name: cleanName,
-                                    distanceKm: distKm,
-                                    timeStr: pt.timeStr,
-                                    type: pt.type
-                                };
-                            }
-                        });
-
-                        if (closestUpcoming) {
-                            let etaString = 'TBD';
-
-                            if (closestUpcoming.timeStr) {
-                                const schedHours = parseInt(closestUpcoming.timeStr.substring(0, 2), 10);
-                                const schedMins = parseInt(closestUpcoming.timeStr.substring(2, 4), 10);
-                                const schedTime = new Date(now);
-                                schedTime.setHours(schedHours, schedMins, 0, 0);
-
-                                const diffMins = Math.round((schedTime - now) / 60000);
-                                const formattedTime = `${closestUpcoming.timeStr.substring(0, 2)}${closestUpcoming.timeStr.substring(2, 4)}`;
-
-                                if (diffMins > 0) {
-                                    etaString = `${diffMins} mins (${formattedTime})`;
-                                } else if (diffMins === 0) {
-                                    etaString = `Now (${formattedTime})`;
-                                } else {
-                                    etaString = `${Math.abs(diffMins)} mins ago (${formattedTime})`;
-                                }
-
-                                if (globalRunnerSpeedKmPerMin > 0.01) {
-                                    const liveRemMins = Math.round(closestUpcoming.distanceKm / globalRunnerSpeedKmPerMin);
-                                    etaString = `${liveRemMins} mins (${formattedTime})`;
-                                }
-                            }
-
-                            statsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
-                                         `<b>ETA:</b> ${etaString}<br>`;
-                        }
-                    } catch (err) {
-                        console.error("Calculation error handled safely:", err);
                     }
                 }
 
                 const popupContent =
-                    popupTitle +
-                    statsHtml +
+                    lastCachedPopupTitle +
+                    lastCachedStatsHtml +
                     `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
 
-                // Update or create marker popup with auto-popup enabled
                 if (!marker) {
                     const runnerIcon = L.divIcon({
                         className: 'racer-icon',
@@ -570,7 +567,6 @@
                     marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
                     marker.openPopup();
                     
-                    // Center map ONLY on initial position receive
                     map.setView([lat, lon], 14);
                     firstPositionReceived = true;
                 } else {
