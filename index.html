@@ -446,9 +446,8 @@
 
         function applyTimeOffset() {
             const offsetInput = document.getElementById('timeOffset');
-            const offsetMinutes = offsetInput ? (parseInt(input.value) || 0) : 0; // Fixed input check below
-            
             const offsetVal = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
+            
             localStorage.setItem('checkpointTimeOffset', offsetVal);
 
             updateOffsetStyle();
@@ -564,71 +563,74 @@
                     // Runner has finished! Show finish details without speed
                     popupTitle = `<b>Finished at ${finishTimeStr}</b><br>` +
                                  `Race time: ${raceTimeStr || 'N/A'}<br>`;
-                } else if (cleanRouteLine && typeof turf !== 'undefined') {
-                    try {
-                        const runnerPt = turf.point([lon, lat]);
-                        const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
-                        const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
-                        const coords = turf.getCoords(cleanRouteLine);
-                        const startPt = turf.point(coords[0]);
-                        const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
-                        currentRunnerDistFromStart = turf.length(traveledSlice, { units: 'kilometers' });
-                        const remainingKm = Math.max(0, totalRouteKm - currentRunnerDistFromStart);
+                } else {
+                    // Runner is still racing: compute distance, upcoming check point, ETA, speed, and target
+                    if (cleanRouteLine && typeof turf !== 'undefined') {
+                        try {
+                            const runnerPt = turf.point([lon, lat]);
+                            const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
+                            const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
+                            const coords = turf.getCoords(cleanRouteLine);
+                            const startPt = turf.point(coords[0]);
+                            const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
+                            currentRunnerDistFromStart = turf.length(traveledSlice, { units: 'kilometers' });
+                            const remainingKm = Math.max(0, totalRouteKm - currentRunnerDistFromStart);
 
-                        popupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
+                            popupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
 
-                        let closestUpcoming = null;
+                            let closestUpcoming = null;
 
-                        for (const pt of parsedPoints) {
-                            const ptPt = turf.point([pt.lon, pt.lat]);
-                            const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
-                            const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
-                            const ptDistFromStart = turf.length(ptSlice, { units: 'kilometers' });
+                            for (const pt of parsedPoints) {
+                                const ptPt = turf.point([pt.lon, pt.lat]);
+                                const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                                const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
+                                const ptDistFromStart = turf.length(ptSlice, { units: 'kilometers' });
 
-                            const distKm = ptDistFromStart - currentRunnerDistFromStart;
+                                const distKm = ptDistFromStart - currentRunnerDistFromStart;
 
-                            if (distKm > 0.05) {
-                                closestUpcoming = {
-                                    name: pt.name,
-                                    distanceKm: distKm,
-                                    timeStr: pt.timeStr,
-                                    type: pt.type
-                                };
-                                break;
-                            }
-                        }
-
-                        if (closestUpcoming) {
-                            let etaString = 'TBD';
-                            let schedString = 'TBD';
-
-                            if (closestUpcoming.timeStr) {
-                                const schedHours = parseInt(closestUpcoming.timeStr.substring(0, 2), 10);
-                                const schedMins = parseInt(closestUpcoming.timeStr.substring(2, 4), 10);
-                                const schedTime = new Date(now);
-                                schedTime.setHours(schedHours, schedMins, 0, 0);
-
-                                const formattedTime = `${closestUpcoming.timeStr.substring(0, 2)}${closestUpcoming.timeStr.substring(2, 4)}`;
-                                schedString = formattedTime;
-
-                                let diffMins = Math.round((schedTime - now) / 60000);
-                                etaString = diffMins >= 0 ? `${diffMins} mins (${formattedTime})` : `${Math.abs(diffMins)} mins ago (${formattedTime})`;
-
-                                if (effectiveSpeedKmPerMin > 0.001) {
-                                    const liveRemMins = Math.round(closestUpcoming.distanceKm / effectiveSpeedKmPerMin);
-                                    const liveEtaDate = new Date(now.getTime() + liveRemMins * 60000);
-                                    const liveEtaTimeStr = liveEtaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '');
-                                    etaString = `${liveRemMins} mins (${liveEtaTimeStr})`;
+                                if (distKm > 0.05) {
+                                    closestUpcoming = {
+                                        name: pt.name,
+                                        distanceKm: distKm,
+                                        timeStr: pt.timeStr,
+                                        type: pt.type
+                                    };
+                                    break;
                                 }
                             }
 
-                            statsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
-                                         `<b>ETA:</b> ${etaString}<br>` +
-                                         `<b>Speed:</b> ${speedDisplay}<br>` +
-                                         `<i>Your target: ${schedString}</i><br>`;
+                            if (closestUpcoming) {
+                                let etaString = 'TBD';
+                                let schedString = 'TBD';
+
+                                if (closestUpcoming.timeStr) {
+                                    const schedHours = parseInt(closestUpcoming.timeStr.substring(0, 2), 10);
+                                    const schedMins = parseInt(closestUpcoming.timeStr.substring(2, 4), 10);
+                                    const schedTime = new Date(now);
+                                    schedTime.setHours(schedHours, schedMins, 0, 0);
+
+                                    const formattedTime = `${closestUpcoming.timeStr.substring(0, 2)}${closestUpcoming.timeStr.substring(2, 4)}`;
+                                    schedString = formattedTime;
+
+                                    let diffMins = Math.round((schedTime - now) / 60000);
+                                    etaString = diffMins >= 0 ? `${diffMins} mins (${formattedTime})` : `${Math.abs(diffMins)} mins ago (${formattedTime})`;
+
+                                    if (effectiveSpeedKmPerMin > 0.001) {
+                                        const liveRemMins = Math.round(closestUpcoming.distanceKm / effectiveSpeedKmPerMin);
+                                        const liveEtaDate = new Date(now.getTime() + liveRemMins * 60000);
+                                        const liveEtaTimeStr = liveEtaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '');
+                                        etaString = `${liveRemMins} mins (${liveEtaTimeStr})`;
+                                    }
+                                }
+
+                                statsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
+                                             `<b>ETA:</b> ${etaString}<br>` +
+                                             `<b>Speed:</b> ${speedDisplay}<br>` +
+                                             `<i>Your target: ${schedString}</i><br>`;
+                            }
+                        } catch (err) {
+                            console.error("Calculation error handled safely:", err);
                         }
-                    } catch (err) {
-                        console.error("Calculation error handled safely:", err);
                     }
                 }
 
