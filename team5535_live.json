@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 12:41",
-    "dt": "2026-10-10 12:41:38",
+    "lt": "10 Oct 26 12:42",
+    "dt": "2026-10-10 12:42:37",
     "fin": 1,
     "ic": null,
     "b": 82,
@@ -155,7 +155,7 @@
       "Last Timed Location": "Freedom",
       "Group": "Team of 3",
       "Battery": "82%",
-      "Last Tracked": "10 Oct 12:41",
+      "Last Tracked": "10 Oct 12:42",
       "Total Dwell": "00:09:57"
     }
   }
