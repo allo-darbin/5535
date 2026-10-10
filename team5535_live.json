@@ -12,7 +12,7 @@
     "a": 0,
     "cl": "",
     "d": null,
-    "lc": "",
+    "lc": "Start",
     "ll": "56.122185,-3.91031",
     "co": "#2094f3",
     "tco": "#ffffff",
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 07:30",
-    "dt": "2026-10-10 07:30:08",
+    "lt": "10 Oct 26 07:33",
+    "dt": "2026-10-10 07:33:59",
     "fin": 0,
     "ic": null,
     "b": 96,
@@ -43,13 +43,13 @@
         "ct": "start",
         "dwell": null,
         "ds": null,
-        "t": "",
+        "t": "Sat 07:45:00",
         "s": "",
         "ss": 0,
         "p": 0,
         "pt": null,
         "note": "",
-        "v": null,
+        "v": "2026-10-10 07:45:00",
         "sss": "00:00:00"
       },
       {
@@ -150,10 +150,11 @@
     "jg": null,
     "profile": null,
     "details": {
+      "Last Timed Location": "Start",
       "Group": "Team of 3",
       "Speed": "0.2 kph",
       "Battery": "96%",
-      "Last Tracked": "10 Oct 07:30"
+      "Last Tracked": "10 Oct 07:33"
     }
   }
 }
