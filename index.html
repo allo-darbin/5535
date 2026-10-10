@@ -239,7 +239,7 @@
             return newHours + newMins;
         }
 
-        // Render points (both checkpoints and cheerpoints) taking time offset into account
+        // Render points taking time offset into account
         function renderPoints() {
             pointLayers.forEach(layer => map.removeLayer(layer));
             pointLayers = [];
@@ -316,45 +316,6 @@
             applyTimeOffset();
         }
 
-        // Calculate route distance along KML track to the next point (checkpoint OR cheerpoint)
-        function getNextPointDetails(racerLat, racerLon) {
-            if (!routeGeoJSON || !parsedPoints.length || typeof turf === 'undefined') {
-                return null;
-            }
-
-            try {
-                const runnerPt = turf.point([racerLon, racerLat]);
-                const routeLine = routeGeoJSON.features ? routeGeoJSON.features[0] : routeGeoJSON;
-                const snappedRunner = turf.nearestPointOnLine(routeLine, runnerPt);
-
-                let closestUpcoming = null;
-                let minDistanceAlongRoute = Infinity;
-
-                parsedPoints.forEach(pt => {
-                    const ptPt = turf.point([pt.lon, pt.lat]);
-                    const snappedPt = turf.nearestPointOnLine(routeLine, ptPt);
-
-                    const sliced = turf.lineSlice(snappedRunner, snappedPt, routeLine);
-                    const distKm = turf.length(sliced, { units: 'kilometers' });
-
-                    if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
-                        minDistanceAlongRoute = distKm;
-                        closestUpcoming = {
-                            name: pt.name,
-                            distanceKm: distKm,
-                            timeStr: pt.timeStr,
-                            type: pt.type
-                        };
-                    }
-                });
-
-                return closestUpcoming;
-            } catch (err) {
-                console.error("Distance calculation error:", err);
-                return null;
-            }
-        }
-
         // 3. Load merged JSON data (points.json)
         async function loadPoints() {
             try {
@@ -386,26 +347,17 @@
             }
         }
 
-        // 4. Toggle labels visibility
         function toggleLabels() {
             const checkbox = document.getElementById('toggle-labels');
-
-            if (!checkbox) {
-                return;
-            }
-
+            if (!checkbox) return;
             const show = checkbox.checked;
-
             pointLayers.forEach(layer => {
-                if (show) {
-                    layer.openTooltip();
-                } else {
-                    layer.closeTooltip();
-                }
+                if (show) layer.openTooltip();
+                else layer.closeTooltip();
             });
         }
 
-        // 5. Fetch and display the latest racer position.
+        // 4. Fetch and display the latest racer position with distance traveled & ETA
         async function updateTracker() {
             try {
                 const response = await fetch(
@@ -425,9 +377,7 @@
                     !json.data ||
                     typeof json.data.ll !== 'string'
                 ) {
-                    throw new Error(
-                        'Unexpected tracking JSON structure or missing coordinates'
-                    );
+                    throw new Error('Unexpected tracking JSON structure or missing coordinates');
                 }
 
                 const teamData = json.data;
@@ -440,9 +390,7 @@
                     Math.abs(parts[0]) > 90 ||
                     Math.abs(parts[1]) > 180
                 ) {
-                    throw new Error(
-                        'Invalid latitude/longitude: ' + teamData.ll
-                    );
+                    throw new Error('Invalid latitude/longitude: ' + teamData.ll);
                 }
 
                 const lat = parts[0];
@@ -452,19 +400,81 @@
 
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 
-                let nextPtInfoHtml = '';
-                const nextPt = getNextPointDetails(lat, lon);
-                if (nextPt) {
-                    const distMiles = (nextPt.distanceKm * 0.621371).toFixed(2);
-                    const typeLabel = nextPt.type === 'checkpoint' ? 'Checkpoint' : 'Cheerpoint';
-                    nextPtInfoHtml = `<br><b>Next (${typeLabel}):</b> ${nextPt.name}<br>` +
-                                     `<b>Distance along route:</b> ${distMiles} mi (${nextPt.distanceKm.toFixed(2)} km)<br>`;
+                let statsHtml = '';
+                if (routeGeoJSON && typeof turf !== 'undefined') {
+                    try {
+                        const routeLine = routeGeoJSON.features ? routeGeoJSON.features[0] : routeGeoJSON;
+                        const runnerPt = turf.point([lon, lat]);
+                        const snappedRunner = turf.nearestPointOnLine(routeLine, runnerPt);
+                        
+                        // 1. Distance traveled from start of KML route
+                        const coords = turf.getCoords(routeLine);
+                        const startPt = turf.point(coords[0]);
+                        const traveledSlice = turf.lineSlice(startPt, snappedRunner, routeLine);
+                        const traveledKm = turf.length(traveledSlice, { units: 'kilometers' });
+                        const traveledMiles = (traveledKm * 0.621371).toFixed(2);
+                        
+                        statsHtml += `<b>Distance Traveled:</b> ${traveledMiles} mi (${traveledKm.toFixed(2)} km)<br>`;
+
+                        // 2. Find next upcoming point & distance/ETA
+                        let closestUpcoming = null;
+                        let minDistanceAlongRoute = Infinity;
+
+                        parsedPoints.forEach(pt => {
+                            const ptPt = turf.point([pt.lon, pt.lat]);
+                            const snappedPt = turf.nearestPointOnLine(routeLine, ptPt);
+                            const sliced = turf.lineSlice(snappedRunner, snappedPt, routeLine);
+                            const distKm = turf.length(sliced, { units: 'kilometers' });
+
+                            if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
+                                minDistanceAlongRoute = distKm;
+                                closestUpcoming = {
+                                    name: pt.name,
+                                    distanceKm: distKm,
+                                    timeStr: pt.timeStr,
+                                    type: pt.type
+                                };
+                            }
+                        });
+
+                        if (closestUpcoming) {
+                            const nextMiles = (closestUpcoming.distanceKm * 0.621371).toFixed(2);
+                            const typeLabel = closestUpcoming.type === 'checkpoint' ? 'Checkpoint' : 'Cheerpoint';
+                            
+                            // Calculate ETA (Live pace vs scheduled fallback)
+                            let etaString = closestUpcoming.timeStr ? 
+                                `${closestUpcoming.timeStr.substring(0, 2)}:${closestUpcoming.timeStr.substring(2, 4)} (Scheduled)` : 'TBD';
+
+                            const now = new Date();
+                            if (parsedPoints.length > 0 && parsedPoints[0].timeStr) {
+                                const startHm = parsedPoints[0].timeStr;
+                                const startTime = new Date(now);
+                                startTime.setHours(parseInt(startHm.substring(0, 2), 10), parseInt(startHm.substring(2, 4), 10), 0, 0);
+
+                                const elapsedMins = (now - startTime) / 60000;
+                                if (elapsedMins > 2 && traveledKm > 0.1) {
+                                    const speedKmPerMin = traveledKm / elapsedMins;
+                                    if (speedKmPerMin > 0.01) {
+                                        const remMins = closestUpcoming.distanceKm / speedKmPerMin;
+                                        const etaDate = new Date(now.getTime() + remMins * 60000);
+                                        etaString = etaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) + ' (Live Pace)';
+                                    }
+                                }
+                            }
+
+                            statsHtml += `<b>Next (${typeLabel}):</b> ${closestUpcoming.name}<br>` +
+                                         `<b>Distance to Next:</b> ${nextMiles} mi (${closestUpcoming.distanceKm.toFixed(2)} km)<br>` +
+                                         `<b>Est. Arrival (ETA):</b> ${etaString}<br>`;
+                        }
+                    } catch (err) {
+                        console.error("Calculation error:", err);
+                    }
                 }
 
                 const popupContent =
                     `<b>${name} (#${raceNumber})</b><br>` +
                     `Lat/Lon: ${lat.toFixed(6)}, ${lon.toFixed(6)}<br>` +
-                    `${nextPtInfoHtml}` +
+                    `${statsHtml}` +
                     `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
                     `📍 Open in Google Maps</a>`;
 
@@ -480,41 +490,4 @@
                     marker.setLatLng([lat, lon]);
                     marker.setPopupContent(popupContent);
                 } else {
-                    marker = L.marker([lat, lon], {
-                        icon: L.divIcon({
-                            className: '',
-                            html: '<div class="racer-icon">🏃</div>',
-                            iconSize: [36, 36],
-                            iconAnchor: [18, 18],
-                            popupAnchor: [0, -18]
-                        }),
-                        zIndexOffset: 1000
-                    })
-                    .addTo(map)
-                    .bindPopup(popupContent);
-
-                    firstPositionReceived = true;
-                    map.setView([lat, lon], 15);
-                }
-
-            } catch (error) {
-                console.error('Error updating racer marker:', error);
-                const lastUpdateEl = document.getElementById('last-update');
-                if (lastUpdateEl) {
-                    lastUpdateEl.innerText = `Update failed (${new Date().toLocaleTimeString()})`;
-                }
-            }
-        }
-
-        map.on('click', function () {
-            map.closePopup();
-        });
-
-        // 6. Start tracker
-        loadPoints();
-
-        updateTracker();
-        setInterval(updateTracker, 30000);
-    </script>
-</body>
-</html>
+                    marker = L.mar
