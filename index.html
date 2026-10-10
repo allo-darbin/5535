@@ -412,12 +412,12 @@
 
                 const lat = parts[0];
                 const lon = parts[1];
-                const name = teamData.n || 'Team 5535';
-                const raceNumber = teamData.r || 5535;
 
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 
+                let popupTitle = '';
                 let statsHtml = '';
+
                 if (cleanRouteLine && typeof turf !== 'undefined') {
                     try {
                         const runnerPt = turf.point([lon, lat]);
@@ -428,9 +428,9 @@
                         const startPt = turf.point(coords[0]);
                         const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
                         const traveledKm = turf.length(traveledSlice, { units: 'kilometers' });
-                        const traveledMiles = (traveledKm * 0.621371).toFixed(2);
                         
-                        statsHtml += `<b>Distance Traveled:</b> ${traveledMiles} mi (${traveledKm.toFixed(2)} km)<br>`;
+                        // Distance in km as title
+                        popupTitle = `<b>${traveledKm.toFixed(2)} km</b><br>`;
 
                         // 2. Find next upcoming point & distance/ETA
                         let closestUpcoming = null;
@@ -455,7 +455,6 @@
 
                         if (closestUpcoming) {
                             const nextMiles = (closestUpcoming.distanceKm * 0.621371).toFixed(2);
-                            const typeLabel = closestUpcoming.type === 'checkpoint' ? 'Checkpoint' : 'Cheerpoint';
                             
                             // Calculate ETA (Live pace vs scheduled fallback)
                             let etaString = closestUpcoming.timeStr ? 
@@ -478,9 +477,8 @@
                                 }
                             }
 
-                            statsHtml += `<b>Next (${typeLabel}):</b> ${closestUpcoming.name}<br>` +
-                                         `<b>Distance to Next:</b> ${nextMiles} mi (${closestUpcoming.distanceKm.toFixed(2)} km)<br>` +
-                                         `<b>Est. Arrival (ETA):</b> ${etaString}<br>`;
+                            statsHtml += `<b>Next:</b> ${closestUpcoming.name} (${nextMiles} mi / ${closestUpcoming.distanceKm.toFixed(2)} km)<br>` +
+                                         `<b>ETA:</b> ${etaString}<br>`;
                         }
                     } catch (err) {
                         console.error("Calculation error handled safely:", err);
@@ -488,58 +486,17 @@
                 }
 
                 const popupContent =
-                    `<b>${name} (#${raceNumber})</b><br>` +
-                    `Lat/Lon: ${lat.toFixed(6)}, ${lon.toFixed(6)}<br>` +
-                    `${statsHtml}` +
-                    `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
-                    `📍 Open in Google Maps</a>`;
+                    popupTitle +
+                    statsHtml +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
 
-                const timeString = new Date().toLocaleTimeString();
-                console.log(`[${timeString}] Team ${raceNumber} coordinates: ${lat}, ${lon}`);
-
-                const lastUpdateEl = document.getElementById('last-update');
-                if (lastUpdateEl) {
-                    lastUpdateEl.innerText = `Last updated: ${timeString}`;
-                }
-
-                if (marker) {
-                    marker.setLatLng([lat, lon]);
-                    marker.setPopupContent(popupContent);
-                } else {
-                    marker = L.marker([lat, lon], {
-                        icon: L.divIcon({
-                            className: '',
-                            html: '<div class="racer-icon">🏃</div>',
-                            iconSize: [36, 36],
-                            iconAnchor: [18, 18],
-                            popupAnchor: [0, -18]
-                        }),
-                        zIndexOffset: 1000
-                    })
-                    .addTo(map)
-                    .bindPopup(popupContent);
-
-                    firstPositionReceived = true;
-                    map.setView([lat, lon], 15);
-                }
-
-            } catch (error) {
-                console.error('Error updating tracker:', error);
-                const lastUpdateEl = document.getElementById('last-update');
-                if (lastUpdateEl) {
-                    lastUpdateEl.innerText = `Update failed (${new Date().toLocaleTimeString()})`;
-                }
-            }
-        }
-
-        map.on('click', function () {
-            map.closePopup();
-        });
-
-        // 5. Start tracker
-        loadPoints();
-        updateTracker();
-        setInterval(updateTracker, 30000);
-    </script>
-</body>
-</html>
+                // Update or create marker popup
+                if (!marker) {
+                    const runnerIcon = L.divIcon({
+                        className: 'racer-icon',
+                        html: '🏃',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                        popupAnchor: [0, -18]
+                    });
+                    marker = 
