@@ -487,23 +487,23 @@
                         const coords = turf.getCoords(cleanRouteLine);
                         const startPt = turf.point(coords[0]);
                         const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
-                        const currentTraveledKm = turf.length(traveledSlice, { units: 'kilometers' });
-                        const remainingKm = Math.max(0, totalRouteKm - currentTraveledKm);
+                        const runnerDistFromStart = turf.length(traveledSlice, { units: 'kilometers' });
+                        const remainingKm = Math.max(0, totalRouteKm - runnerDistFromStart);
 
                         popupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
 
                         let closestUpcoming = null;
 
-                        // Iterate through points in their natural array order (chronological sequence)
+                        // Compare distances from start line for chronological sequence check
                         for (const pt of parsedPoints) {
                             const ptPt = turf.point([pt.lon, pt.lat]);
                             const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
-                            
-                            // Measure distance along the route from the runner to this point
-                            const sliced = turf.lineSlice(snappedRunner, snappedPt, cleanRouteLine);
-                            const distKm = turf.length(sliced, { units: 'kilometers' });
+                            const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
+                            const ptDistFromStart = turf.length(ptSlice, { units: 'kilometers' });
 
-                            // Find the first point that is ahead of the runner (more than 50 meters away along the track)
+                            const distKm = ptDistFromStart - runnerDistFromStart;
+
+                            // Find the first point ahead of the runner by more than 50 meters along the route
                             if (distKm > 0.05) {
                                 closestUpcoming = {
                                     name: pt.name,
@@ -511,7 +511,7 @@
                                     timeStr: pt.timeStr,
                                     type: pt.type
                                 };
-                                break; // Stop immediately at the first upcoming point in sequence!
+                                break;
                             }
                         }
 
