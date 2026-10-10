@@ -70,30 +70,6 @@
             border-color: #c8e6c9;
         }
 
-        /* Fullscreen floating button in bottom-right */
-        .fullscreen-overlay {
-            position: absolute;
-            bottom: 15px;
-            right: 15px;
-            z-index: 1000;
-        }
-
-        .fullscreen-btn {
-            padding: 6px 10px;
-            font-size: 12px;
-            cursor: pointer;
-            border-radius: 6px;
-            border: none;
-            background: white;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-            font-weight: bold;
-            color: #333;
-        }
-
-        .fullscreen-btn:hover {
-            background: #f0f0f0;
-        }
-
         /* Prevent layer control from overlapping zoom +/- buttons */
         .leaflet-top.leaflet-left .leaflet-control-layers {
             margin-top: 10px;
@@ -150,11 +126,6 @@
         </div>
     </div>
 
-    <!-- Floating Fullscreen button at bottom-right -->
-    <div class="fullscreen-overlay">
-        <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
-    </div>
-
     <!-- Existing bottom-left timestamp container -->
     <div id="last-update" class="status-overlay">Tracking active...</div>
 
@@ -166,41 +137,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <script>
-        function toggleFullScreen() {
-            const doc = document;
-            const elem = document.documentElement;
-
-            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen().catch(() => {});
-                } else if (elem.msRequestFullscreen) {
-                    elem.msRequestFullscreen();
-                } else if (elem.mozRequestFullScreen) {
-                    elem.mozRequestFullScreen();
-                } else if (elem.webkitRequestFullscreen) {
-                    elem.webkitRequestFullscreen();
-                }
-            } else {
-                if (doc.exitFullscreen) {
-                    doc.exitFullscreen().catch(() => {});
-                } else if (doc.msExitFullscreen) {
-                    doc.msExitFullscreen();
-                } else if (doc.mozCancelFullScreen) {
-                    doc.mozCancelFullScreen();
-                } else if (doc.webkitExitFullscreen) {
-                    doc.webkitExitFullscreen();
-                }
-            }
-        }
-
-        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
-            document.addEventListener(evt, () => {
-                const btn = document.getElementById('fullscreenBtn');
-                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullscreenElement || document.msFullscreenElement);
-                if (btn) btn.innerText = isFS ? 'Exit Fullscreen' : '⛶ Fullscreen';
-            });
-        });
-
         // Dynamic background styling for offset box
         function updateOffsetStyle() {
             const input = document.getElementById('timeOffset');
