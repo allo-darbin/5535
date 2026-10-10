@@ -56,37 +56,45 @@
             margin-top: 10px;
         }
 
-        /* Combined control and status box at bottom left */
-        .bottom-left-panel {
+        /* Modern Centered Bottom Control & Status Panel */
+        .bottom-panel {
             position: absolute;
-            bottom: 15px;
-            left: 15px;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             z-index: 1000;
-            background: rgba(255, 255, 255, 0.92);
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 11px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(4px);
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 12px;
             color: #333;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.18);
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
             white-space: nowrap;
+            max-width: 90vw;
         }
 
         .controls-row {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
+            gap: 12px;
             color: #444;
+            font-weight: 500;
         }
 
         .status-row {
-            border-top: 1px solid #eee;
-            padding-top: 5px;
-            font-size: 10.5px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 11px;
             color: #555;
-            line-height: 1.2;
+            text-align: center;
+            border: 1px solid #eee;
+            letter-spacing: 0.2px;
         }
 
         .leaflet-popup-content a {
@@ -111,25 +119,24 @@
         /* Vertical separator between controls */
         .divider {
             width: 1px;
-            height: 14px;
+            height: 16px;
             background-color: #ddd;
-            margin: 0 8px;
         }
     </style>
 </head>
 
 <body>
-    <!-- Consolidated control panel in bottom left -->
-    <div class="bottom-left-panel">
+    <!-- Centered Bottom Control & Status Panel -->
+    <div class="bottom-panel">
         <div class="controls-row">
-            <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="toggle-labels" onchange="toggleLabels()" style="cursor: pointer;">
                 Show Labels
             </label>
 
             <div class="divider"></div>
 
-            <label for="timeOffset" style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <label for="timeOffset" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
                 Time Offset:
                 <input type="number" id="timeOffset" value="0" oninput="applyTimeOffset()" class="offset-input">
             </label>
