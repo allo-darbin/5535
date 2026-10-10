@@ -42,6 +42,31 @@
             color: #444;
         }
 
+        /* Time offset input styling with subtle light background and no dark borders */
+        .offset-input {
+            width: 50px;
+            padding: 4px 6px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+            outline: none;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+
+        .offset-input.offset-pos {
+            background-color: #ffebee;
+            color: #c62828;
+            border-color: #ffcdd2;
+        }
+
+        .offset-input.offset-neg {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border-color: #c8e6c9;
+        }
+
         /* Fullscreen floating overlay in bottom-right */
         .fullscreen-overlay {
             position: absolute;
@@ -116,7 +141,7 @@
         <div style="border-top: 1px solid #eee; padding-top: 8px;">
             <label for="timeOffset" style="display: block; font-size: 11px; margin-bottom: 3px; color: #666;">Time Offset (mins):</label>
             <div style="display: flex; gap: 4px; align-items: center;">
-                <input type="number" id="timeOffset" value="0" onchange="applyTimeOffset()" style="width: 50px; padding: 3px; font-size: 12px;">
+                <input type="number" id="timeOffset" value="0" oninput="updateOffsetStyle()" onchange="applyTimeOffset()" class="offset-input">
                 <button onclick="applyTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Apply</button>
                 <button onclick="resetTimeOffset()" style="padding: 3px 6px; font-size: 11px; cursor: pointer;">Reset</button>
             </div>
@@ -174,6 +199,20 @@
             });
         });
 
+        // Dynamic background styling for offset box
+        function updateOffsetStyle() {
+            const input = document.getElementById('timeOffset');
+            if (!input) return;
+            const val = parseInt(input.value, 10) || 0;
+
+            input.classList.remove('offset-pos', 'offset-neg');
+            if (val > 0) {
+                input.classList.add('offset-pos');
+            } else if (val < 0) {
+                input.classList.add('offset-neg');
+            }
+        }
+
         // 1. Initialise base maps and layer switcher with persistence.
         const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -213,11 +252,10 @@
         let cleanRouteLine = null;
 
         let lastKnownCoords = null;
-        let mostRecentSpeedKmPerMin = 0; // Speed derived from most recent update interval
+        let mostRecentSpeedKmPerMin = 0;
         let globalRunnerTraveledKm = 0;
         let userClosedPopup = false;
 
-        // Variables for most recent interval speed calculation
         let prevLat = null;
         let prevLon = null;
         let prevTime = null;
@@ -311,7 +349,6 @@
                     const formattedSchedTime = `${targetTimeStr.substring(0, 2)}${targetTimeStr.substring(2, 4)}`;
                     schedDisplay = formattedSchedTime;
 
-                    // Compute dynamic ETA using the runner's most recent speed
                     if (cleanRouteLine && mostRecentSpeedKmPerMin > 0.01 && globalRunnerTraveledKm > 0.1 && typeof turf !== 'undefined') {
                         try {
                             const ptPt = turf.point([lon, lat]);
@@ -337,7 +374,6 @@
                     }
                 }
 
-                // Clean popup title (removes 4-digit time prefix)
                 let cleanLocationName = displayName.length > 5 ? displayName.substring(5) : displayName;
 
                 const popupHtml =
@@ -347,10 +383,11 @@
                     `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
 
                 const pointMarker = L.circleMarker([lat, lon], {
-                    radius: isCheckpoint ? 7 : 6,
-                    color: pt.c || (isCheckpoint ? '#f44034' : '#9c27b0'),
+                    radius: isCheckpoint ? 12 : 10,
+                    weight: 2,
+                    color: pt.c || (isCheckpoint ? '#d32f2f' : '#7b1fa2'),
                     fillColor: pt.c || (isCheckpoint ? '#f44034' : '#ba68c8'),
-                    fillOpacity: isCheckpoint ? 0.9 : 0.8
+                    fillOpacity: isCheckpoint ? 0.9 : 0.85
                 })
                 .addTo(map)
                 .bindPopup(popupHtml)
@@ -359,7 +396,7 @@
                     {
                         permanent: true,
                         direction: isCheckpoint ? 'top' : 'bottom',
-                        offset: isCheckpoint ? [0, -5] : [0, 5]
+                        offset: isCheckpoint ? [0, -8] : [0, 8]
                     }
                 );
 
@@ -374,6 +411,7 @@
             
             localStorage.setItem('checkpointTimeOffset', offsetMinutes);
 
+            updateOffsetStyle();
             renderPoints();
             toggleLabels();
 
@@ -403,6 +441,7 @@
                         if (input) input.value = savedOffset;
                     }
 
+                    updateOffsetStyle();
                     renderPoints();
                     toggleLabels();
                 }
@@ -444,7 +483,6 @@
 
                 const coordsChanged = (rawLl !== lastKnownCoords);
                 if (coordsChanged) {
-                    // Compute most recent speed using the last 2 location updates
                     if (prevLat !== null && prevLon !== null && prevTime !== null) {
                         const timeDeltaMins = (now - prevTime) / 60000;
                         if (timeDeltaMins > 0) {
@@ -452,7 +490,6 @@
                             const pt2 = turf.point([lon, lat]);
                             const segmentDistKm = turf.distance(pt1, pt2, { units: 'kilometers' });
                             
-                            // Update speed if runner moved a valid distance
                             if (segmentDistKm > 0.005) {
                                 mostRecentSpeedKmPerMin = segmentDistKm / timeDeltaMins;
                             }
@@ -478,12 +515,10 @@
                         }
                     }
 
-                    // Re-render checkpoint markers to reflect latest speed
                     renderPoints();
                     toggleLabels();
                 }
 
-                // Runner popup content
                 let popupTitle = '';
                 let statsHtml = '';
 
