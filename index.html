@@ -217,7 +217,7 @@
         let globalRunnerTraveledKm = 0;
         let lastCachedPopupTitle = '';
         let lastCachedStatsHtml = '';
-        let userClosedPopup = false; // Tracks if you manually closed the bubble
+        let userClosedPopup = false; // Properly declared tracker for manual close
 
         function extractLineString(geoJson) {
             try {
@@ -479,4 +479,4 @@
                                     
                                     closestUpcoming = {
                                         name: pt.name,
-   
+ 
