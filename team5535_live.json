@@ -8,7 +8,7 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "0.40",
+    "sp": "0.00",
     "a": 0,
     "cl": "",
     "d": null,
@@ -22,11 +22,11 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 08:55",
-    "dt": "2026-10-10 08:55:45",
+    "lt": "10 Oct 26 08:56",
+    "dt": "2026-10-10 08:56:45",
     "fin": 0,
     "ic": null,
-    "b": 92,
+    "b": 91,
     "te": 1,
     "tg": "Male",
     "dw": true,
@@ -35,7 +35,7 @@
     "v": true,
     "af": 0,
     "as": 0,
-    "totaldwell": "00:01:29",
+    "totaldwell": "00:02:29",
     "splitLabel": "Split",
     "splits": [
       {
@@ -72,8 +72,8 @@
         "i": 402115,
         "n": "King Robert The Bruce",
         "ct": "control",
-        "dwell": "00:00:30",
-        "ds": 30,
+        "dwell": "00:01:30",
+        "ds": 90,
         "t": "Sat 08:55:15",
         "s": "00:38:23",
         "ss": 2303,
@@ -154,10 +154,9 @@
       "Time Taken": "01:10:15",
       "Last Timed Location": "King Robert The Bruce",
       "Group": "Team of 3",
-      "Speed": "0.4 kph",
-      "Battery": "92%",
-      "Last Tracked": "10 Oct 08:55",
-      "Total Dwell": "00:01:29"
+      "Battery": "91%",
+      "Last Tracked": "10 Oct 08:56",
+      "Total Dwell": "00:02:29"
     }
   }
 }
