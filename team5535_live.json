@@ -13,7 +13,7 @@
     "cl": "",
     "d": null,
     "lc": "Wallace Monument",
-    "ll": "56.119151,-3.925978",
+    "ll": "56.119525,-3.923054",
     "co": "#2094f3",
     "tco": "#ffffff",
     "t": "04:15:45",
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 12:30",
-    "dt": "2026-10-10 12:30:39",
+    "lt": "10 Oct 26 12:31",
+    "dt": "2026-10-10 12:31:39",
     "fin": 0,
     "ic": null,
     "b": 82,
@@ -156,7 +156,7 @@
       "Group": "Team of 3",
       "Speed": "10.6 kph",
       "Battery": "82%",
-      "Last Tracked": "10 Oct 12:30",
+      "Last Tracked": "10 Oct 12:31",
       "Total Dwell": "00:09:57"
     }
   }
