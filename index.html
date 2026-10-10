@@ -203,7 +203,23 @@
         let rawPointsData = [];
         let parsedPoints = [];
         let firstPositionReceived = false;
-        let routeGeoJSON = null;
+        let cleanRouteLine = null; // Clean single LineString for Turf
+
+        // Helper to extract clean single LineString from any complex GeoJSON/KML structure
+        function extractLineString(geoJson) {
+            try {
+                let coords = [];
+                turf.coordEach(geoJson, function (currentCoord) {
+                    coords.push(currentCoord);
+                });
+                if (coords.length >= 2) {
+                    return turf.lineString(coords);
+                }
+            } catch (err) {
+                console.error("Error processing KML coordinates for Turf:", err);
+            }
+            return null;
+        }
 
         // 2. Load the KML route.
         omnivore.kml('route.kml')
@@ -218,7 +234,8 @@
                     map.fitBounds(this.getBounds());
                 }
 
-                routeGeoJSON = this.toGeoJSON();
+                // Convert loaded KML to a unified single LineString
+                cleanRouteLine = extractLineString(this.toGeoJSON());
             })
             .on('error', function (error) {
                 console.error('Could not load route.kml:', error);
@@ -401,16 +418,15 @@
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 
                 let statsHtml = '';
-                if (routeGeoJSON && typeof turf !== 'undefined') {
+                if (cleanRouteLine && typeof turf !== 'undefined') {
                     try {
-                        const routeLine = routeGeoJSON.features ? routeGeoJSON.features[0] : routeGeoJSON;
                         const runnerPt = turf.point([lon, lat]);
-                        const snappedRunner = turf.nearestPointOnLine(routeLine, runnerPt);
+                        const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
                         
                         // 1. Distance traveled from start of KML route
-                        const coords = turf.getCoords(routeLine);
+                        const coords = turf.getCoords(cleanRouteLine);
                         const startPt = turf.point(coords[0]);
-                        const traveledSlice = turf.lineSlice(startPt, snappedRunner, routeLine);
+                        const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
                         const traveledKm = turf.length(traveledSlice, { units: 'kilometers' });
                         const traveledMiles = (traveledKm * 0.621371).toFixed(2);
                         
@@ -422,8 +438,8 @@
 
                         parsedPoints.forEach(pt => {
                             const ptPt = turf.point([pt.lon, pt.lat]);
-                            const snappedPt = turf.nearestPointOnLine(routeLine, ptPt);
-                            const sliced = turf.lineSlice(snappedRunner, snappedPt, routeLine);
+                            const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                            const sliced = turf.lineSlice(snappedRunner, snappedPt, cleanRouteLine);
                             const distKm = turf.length(sliced, { units: 'kilometers' });
 
                             if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
@@ -467,7 +483,7 @@
                                          `<b>Est. Arrival (ETA):</b> ${etaString}<br>`;
                         }
                     } catch (err) {
-                        console.error("Calculation error:", err);
+                        console.error("Calculation error handled safely:", err);
                     }
                 }
 
@@ -490,4 +506,40 @@
                     marker.setLatLng([lat, lon]);
                     marker.setPopupContent(popupContent);
                 } else {
-                    marker = L.mar
+                    marker = L.marker([lat, lon], {
+                        icon: L.divIcon({
+                            className: '',
+                            html: '<div class="racer-icon">🏃</div>',
+                            iconSize: [36, 36],
+                            iconAnchor: [18, 18],
+                            popupAnchor: [0, -18]
+                        }),
+                        zIndexOffset: 1000
+                    })
+                    .addTo(map)
+                    .bindPopup(popupContent);
+
+                    firstPositionReceived = true;
+                    map.setView([lat, lon], 15);
+                }
+
+            } catch (error) {
+                console.error('Error updating tracker:', error);
+                const lastUpdateEl = document.getElementById('last-update');
+                if (lastUpdateEl) {
+                    lastUpdateEl.innerText = `Update failed (${new Date().toLocaleTimeString()})`;
+                }
+            }
+        }
+
+        map.on('click', function () {
+            map.closePopup();
+        });
+
+        // 5. Start tracker
+        loadPoints();
+        updateTracker();
+        setInterval(updateTracker, 30000);
+    </script>
+</body>
+</html>
