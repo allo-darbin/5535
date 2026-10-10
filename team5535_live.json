@@ -8,7 +8,7 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "0.00",
+    "sp": null,
     "a": 0,
     "cl": "",
     "d": null,
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 12:44",
-    "dt": "2026-10-10 12:44:37",
+    "lt": "10 Oct 26 12:45",
+    "dt": "2026-10-10 12:45:57",
     "fin": 1,
     "ic": null,
     "b": 82,
@@ -155,7 +155,7 @@
       "Last Timed Location": "Freedom",
       "Group": "Team of 3",
       "Battery": "82%",
-      "Last Tracked": "10 Oct 12:44",
+      "Last Tracked": "10 Oct 12:45",
       "Total Dwell": "00:09:57"
     }
   }
