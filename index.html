@@ -599,18 +599,12 @@
                                 }
                             }
 
-                            // FALLBACK: If all intermediate checkpoints have been passed, use the final point in parsedPoints as the target
+                            // FALLBACK: If all intermediate checkpoints have been passed, use the final point with the actual remaining distance
                             if (!closestUpcoming && parsedPoints.length > 0) {
                                 const lastPt = parsedPoints[parsedPoints.length - 1];
-                                const ptPt = turf.point([lastPt.lon, lastPt.lat]);
-                                const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
-                                const ptSlice = turf.lineSlice(startPt, snappedPt, cleanRouteLine);
-                                const ptDistFromStart = turf.length(ptSlice, { units: 'kilometers' });
-                                const distKm = Math.max(0, ptDistFromStart - currentRunnerDistFromStart);
-
                                 closestUpcoming = {
                                     name: lastPt.name,
-                                    distanceKm: distKm,
+                                    distanceKm: remainingKm,
                                     timeStr: lastPt.timeStr,
                                     type: lastPt.type
                                 };
