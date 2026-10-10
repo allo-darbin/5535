@@ -8,23 +8,23 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "12.50",
+    "sp": "13.70",
     "a": 0,
     "cl": "",
     "d": null,
-    "lc": "Freedom",
-    "ll": "56.122185,-3.91031",
+    "lc": "Bannockburn",
+    "ll": "56.091747,-3.932663",
     "co": "#2094f3",
     "tco": "#ffffff",
-    "t": "00:00:27",
+    "t": "00:30:52",
     "g": "Team of 3",
     "f": "",
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 08:14",
-    "dt": "2026-10-10 08:14:52",
-    "fin": 1,
+    "lt": "10 Oct 26 08:15",
+    "dt": "2026-10-10 08:15:52",
+    "fin": 0,
     "ic": null,
     "b": 93,
     "te": 1,
@@ -33,8 +33,9 @@
     "ec": "26ww50km",
     "ret": false,
     "v": true,
-    "af": 1,
+    "af": 0,
     "as": 0,
+    "totaldwell": "00:00:00",
     "splitLabel": "Split",
     "splits": [
       {
@@ -56,16 +57,16 @@
         "i": 402114,
         "n": "Bannockburn",
         "ct": "control",
-        "dwell": null,
-        "ds": null,
-        "t": "",
-        "s": "",
-        "ss": 0,
+        "dwell": "00:00:00",
+        "ds": 0,
+        "t": "Sat 08:15:52",
+        "s": "00:30:52",
+        "ss": 1852,
         "p": 0,
         "pt": null,
         "note": "",
-        "v": null,
-        "sss": "00:00:00"
+        "v": "2026-10-10 08:15:52",
+        "sss": "00:30:52"
       },
       {
         "i": 402115,
@@ -80,7 +81,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "00:00:00"
+        "sss": "00:30:52"
       },
       {
         "i": 402116,
@@ -95,7 +96,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "00:00:00"
+        "sss": "00:30:52"
       },
       {
         "i": 402117,
@@ -110,7 +111,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "00:00:00"
+        "sss": "00:30:52"
       },
       {
         "i": 402118,
@@ -125,7 +126,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "00:00:00"
+        "sss": "00:30:52"
       },
       {
         "i": 402119,
@@ -133,14 +134,14 @@
         "ct": "finish",
         "dwell": null,
         "ds": null,
-        "t": "Sat 07:45:27",
-        "s": "00:00:27",
-        "ss": 27,
+        "t": "",
+        "s": "",
+        "ss": 0,
         "p": 0,
         "pt": null,
         "note": "",
-        "v": "2026-10-10 07:45:27",
-        "sss": "00:00:27"
+        "v": null,
+        "sss": "00:30:52"
       }
     ],
     "mailheader": null,
@@ -150,12 +151,13 @@
     "jg": null,
     "profile": null,
     "details": {
-      "Time Taken": "00:00:27",
-      "Last Timed Location": "Freedom",
+      "Time Taken": "00:30:52",
+      "Last Timed Location": "Bannockburn",
       "Group": "Team of 3",
-      "Speed": "12.5 kph",
+      "Speed": "13.7 kph",
       "Battery": "93%",
-      "Last Tracked": "10 Oct 08:14"
+      "Last Tracked": "10 Oct 08:15",
+      "Total Dwell": "00:00:00"
     }
   }
 }
