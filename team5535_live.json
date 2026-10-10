@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 07:40",
-    "dt": "2026-10-10 07:40:28",
+    "lt": "10 Oct 26 07:41",
+    "dt": "2026-10-10 07:41:57",
     "fin": 0,
     "ic": null,
     "b": 95,
@@ -153,7 +153,7 @@
       "Last Timed Location": "Start",
       "Group": "Team of 3",
       "Battery": "95%",
-      "Last Tracked": "10 Oct 07:40"
+      "Last Tracked": "10 Oct 07:41"
     }
   }
 }
