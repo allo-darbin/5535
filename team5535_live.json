@@ -8,7 +8,7 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": null,
+    "sp": "3.70",
     "a": 0,
     "cl": "",
     "d": null,
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 07:22",
-    "dt": "2026-10-10 07:22:30",
+    "lt": "10 Oct 26 07:24",
+    "dt": "2026-10-10 07:24:05",
     "fin": 0,
     "ic": null,
     "b": 96,
@@ -151,8 +151,9 @@
     "profile": null,
     "details": {
       "Group": "Team of 3",
+      "Speed": "3.7 kph",
       "Battery": "96%",
-      "Last Tracked": "10 Oct 07:22"
+      "Last Tracked": "10 Oct 07:24"
     }
   }
 }
