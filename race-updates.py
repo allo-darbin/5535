@@ -10,8 +10,10 @@ from pathlib import Path
 # Configuration
 URL = (
     "https://editor.opentracking.com/event/"
-    "26ww50km/details?id=5535&e=21331"
+    #team "26ww50km/details?id=5535&e=21331"
+    "26ww70km/details?id=7066&e=21330" #individual
 )
+
 FILENAME = Path("team5535_live.json")
 INTERVAL = 60
 
