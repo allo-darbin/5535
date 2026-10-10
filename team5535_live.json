@@ -8,12 +8,12 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "0.00",
+    "sp": "10.60",
     "a": 0,
     "cl": "",
     "d": null,
     "lc": "Mary Queen of Scots",
-    "ll": "56.153541,-3.949121",
+    "ll": "56.155169,-3.947973",
     "co": "#2094f3",
     "tco": "#ffffff",
     "t": "03:13:55",
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 10:59",
-    "dt": "2026-10-10 10:59:55",
+    "lt": "10 Oct 26 11:00",
+    "dt": "2026-10-10 11:00:55",
     "fin": 0,
     "ic": null,
     "b": 86,
@@ -35,7 +35,7 @@
     "v": true,
     "af": 0,
     "as": 0,
-    "totaldwell": "00:06:58",
+    "totaldwell": "00:08:28",
     "splitLabel": "Split",
     "splits": [
       {
@@ -102,8 +102,8 @@
         "i": 402117,
         "n": "Mary Queen of Scots",
         "ct": "control",
-        "dwell": "00:00:30",
-        "ds": 30,
+        "dwell": "00:02:00",
+        "ds": 120,
         "t": "Sat 10:58:55",
         "s": "00:44:23",
         "ss": 2663,
@@ -154,9 +154,10 @@
       "Time Taken": "03:13:55",
       "Last Timed Location": "Mary Queen of Scots",
       "Group": "Team of 3",
+      "Speed": "10.6 kph",
       "Battery": "86%",
-      "Last Tracked": "10 Oct 10:59",
-      "Total Dwell": "00:06:58"
+      "Last Tracked": "10 Oct 11:00",
+      "Total Dwell": "00:08:28"
     }
   }
 }
