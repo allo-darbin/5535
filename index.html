@@ -142,8 +142,8 @@
             Show Marker Labels
         </label>
         <div style="border-top: 1px solid #eee; padding-top: 8px;">
-            <label for="timeOffset" style="display: flex; align-items: center; gap: 8px; font-size: 11px; color: #666; cursor: pointer;">
-                Offset (mins):
+            <label for="timeOffset" style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #666; cursor: pointer;">
+                Schedule offset (mins):
                 <input type="number" id="timeOffset" value="0" oninput="applyTimeOffset()" class="offset-input">
             </label>
         </div>
@@ -547,7 +547,7 @@
                                     name: pt.name,
                                     distanceKm: distKm,
                                     timeStr: pt.timeStr,
-                                    type: pt.type
+                                    type: pt.point_type
                                 };
                             }
                         });
