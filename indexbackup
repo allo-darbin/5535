@@ -42,7 +42,31 @@
             color: #444;
         }
 
-        /* Prevent layer control from overlapping the zoom +/- buttons */
+        /* Fullscreen floating overlay in bottom-right */
+        .fullscreen-overlay {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            z-index: 1000;
+        }
+
+        .fullscreen-btn {
+            padding: 6px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 6px;
+            border: none;
+            background: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-weight: bold;
+            color: #333;
+        }
+
+        .fullscreen-btn:hover {
+            background: #f0f0f0;
+        }
+
+        /* Prevent layer control from overlapping zoom +/- buttons */
         .leaflet-top.leaflet-left .leaflet-control-layers {
             margin-top: 10px;
         }
@@ -85,7 +109,7 @@
 
 <body>
     <div class="info-box">
-        <label style="display: block; margin-bottom: 8px;">
+        <label style="display: block; margin-bottom: 8px; cursor: pointer;">
             <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
             Show Marker Labels
         </label>
@@ -99,6 +123,11 @@
         </div>
     </div>
 
+    <!-- Floating Fullscreen button at bottom-right -->
+    <div class="fullscreen-overlay">
+        <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
+    </div>
+
     <!-- Standalone text overlay at bottom-left -->
     <div id="last-update" class="status-overlay">Tracking active...</div>
 
@@ -110,6 +139,41 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <script>
+        function toggleFullScreen() {
+            const doc = document;
+            const elem = document.documentElement;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen().catch(() => {});
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) {
+                    elem.mozRequestFullScreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                }
+            } else {
+                if (doc.exitFullscreen) {
+                    doc.exitFullscreen().catch(() => {});
+                } else if (doc.msExitFullscreen) {
+                    doc.msExitFullscreen();
+                } else if (doc.mozCancelFullScreen) {
+                    doc.mozCancelFullScreen();
+                } else if (doc.webkitExitFullscreen) {
+                    doc.webkitExitFullscreen();
+                }
+            }
+        }
+
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
+            document.addEventListener(evt, () => {
+                const btn = document.getElementById('fullscreenBtn');
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+                if (btn) btn.innerText = isFS ? 'Exit Fullscreen' : '⛶ Fullscreen';
+            });
+        });
+
         // 1. Initialise base maps and layer switcher.
         const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -132,17 +196,30 @@
             "Satellite View": satelliteLayer
         };
 
-        // Position layer control in top-left (CSS ensures it stays below zoom buttons)
         L.control.layers(baseMaps, null, { position: 'topleft' }).addTo(map);
 
         let marker = null;
-        let checkpointLayers = [];
-        let cheerpointLayers = [];
-        let rawCheckpointData = [];
-        let rawCheerpointData = [];
-        let parsedCheckpoints = [];
+        let pointLayers = [];
+        let rawPointsData = [];
+        let parsedPoints = [];
         let firstPositionReceived = false;
-        let routeGeoJSON = null;
+        let cleanRouteLine = null; // Clean single LineString for Turf
+
+        // Helper to extract clean single LineString from any complex GeoJSON/KML structure
+        function extractLineString(geoJson) {
+            try {
+                let coords = [];
+                turf.coordEach(geoJson, function (currentCoord) {
+                    coords.push(currentCoord);
+                });
+                if (coords.length >= 2) {
+                    return turf.lineString(coords);
+                }
+            } catch (err) {
+                console.error("Error processing KML coordinates for Turf:", err);
+            }
+            return null;
+        }
 
         // 2. Load the KML route.
         omnivore.kml('route.kml')
@@ -157,7 +234,8 @@
                     map.fitBounds(this.getBounds());
                 }
 
-                routeGeoJSON = this.toGeoJSON();
+                // Convert loaded KML to a unified single LineString
+                cleanRouteLine = extractLineString(this.toGeoJSON());
             })
             .on('error', function (error) {
                 console.error('Could not load route.kml:', error);
@@ -178,24 +256,24 @@
             return newHours + newMins;
         }
 
-        // Render checkpoints taking current time offset into account
-        function renderCheckpoints() {
-            checkpointLayers.forEach(layer => map.removeLayer(layer));
-            checkpointLayers = [];
-            parsedCheckpoints = [];
+        // Render points taking time offset into account
+        function renderPoints() {
+            pointLayers.forEach(layer => map.removeLayer(layer));
+            pointLayers = [];
+            parsedPoints = [];
 
             const offsetInput = document.getElementById('timeOffset');
             const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
 
-            rawCheckpointData.forEach(cp => {
-                const lat = Number(cp.la);
-                const lon = Number(cp.lo);
+            rawPointsData.forEach(pt => {
+                const lat = Number(pt.la);
+                const lon = Number(pt.lo);
 
                 if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
                     return;
                 }
 
-                let displayName = cp.n || 'Checkpoint';
+                let displayName = pt.n || 'Point';
                 let targetTimeStr = null;
                 const match = displayName.match(/^(\d{4})(\s.*)$/);
                 if (match) {
@@ -206,16 +284,18 @@
                 }
 
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+                const isCheckpoint = pt.point_type === 'checkpoint';
 
-                const checkpoint = L.circleMarker([lat, lon], {
-                    radius: 6,
-                    color: cp.c || '#f44034',
-                    fillColor: cp.c || '#f44034',
-                    fillOpacity: 0.8
+                const pointMarker = L.circleMarker([lat, lon], {
+                    radius: isCheckpoint ? 7 : 6,
+                    color: pt.c || (isCheckpoint ? '#f44034' : '#9c27b0'),
+                    fillColor: pt.c || (isCheckpoint ? '#f44034' : '#ba68c8'),
+                    fillOpacity: isCheckpoint ? 0.9 : 0.8
                 })
                 .addTo(map)
                 .bindPopup(
                     `<b>${displayName}</b><br>` +
+                    `<small>(${isCheckpoint ? 'Checkpoint' : 'Cheerpoint'})</small><br>` +
                     `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
                     `📍 Open in Google Maps</a>`
                 )
@@ -223,83 +303,28 @@
                     `<b>${displayName}</b>`,
                     {
                         permanent: true,
-                        direction: 'top',
-                        offset: [0, -5]
+                        direction: isCheckpoint ? 'top' : 'bottom',
+                        offset: isCheckpoint ? [0, -5] : [0, 5]
                     }
                 );
 
-                checkpointLayers.push(checkpoint);
-                parsedCheckpoints.push({ lat, lon, name: displayName, timeStr: targetTimeStr });
+                pointLayers.push(pointMarker);
+                parsedPoints.push({ lat, lon, name: displayName, timeStr: targetTimeStr, type: pt.point_type });
             });
         }
 
-        // Render cheerpoints taking current time offset into account
-        function renderCheerpoints() {
-            cheerpointLayers.forEach(layer => map.removeLayer(layer));
-            cheerpointLayers = [];
-
-            const offsetInput = document.getElementById('timeOffset');
-            const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
-
-            rawCheerpointData.forEach(cp => {
-                const lat = Number(cp.lat);
-                const lon = Number(cp.lon);
-
-                if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-                    return;
-                }
-
-                let displayName = cp.name || 'Cheerpoint';
-                const match = displayName.match(/^(\d{4})(\s.*)$/);
-                if (match) {
-                    const originalTime = match[1];
-                    const textDescription = match[2];
-                    displayName = adjustTimeString(originalTime, offsetMinutes) + textDescription;
-                }
-
-                const mapsUrl = `https://www.google.com/maps?q=${lat},${lon}`;
-
-                const cheerpoint = L.circleMarker([lat, lon], {
-                    radius: 7,
-                    color: '#9c27b0',
-                    fillColor: '#ba68c8',
-                    fillOpacity: 0.9
-                })
-                .addTo(map)
-                .bindPopup(
-                    `<b>${displayName}</b><br>` +
-                    `${cp.note || ''}<br>` +
-                    `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
-                    `📍 Open in Google Maps</a>`
-                )
-                .bindTooltip(
-                    `<b>${displayName}</b>`,
-                    {
-                        permanent: true,
-                        direction: 'bottom',
-                        offset: [0, 5]
-                    }
-                );
-
-                cheerpointLayers.push(cheerpoint);
-            });
-        }
-
-        // Triggered when clicking "Apply" or changing the input
         function applyTimeOffset() {
             const offsetInput = document.getElementById('timeOffset');
             const offsetMinutes = offsetInput ? (parseInt(offsetInput.value) || 0) : 0;
             
             localStorage.setItem('checkpointTimeOffset', offsetMinutes);
 
-            renderCheckpoints();
-            renderCheerpoints();
+            renderPoints();
             toggleLabels();
 
             if (marker) updateTracker();
         }
 
-        // Reset offset back to 0
         function resetTimeOffset() {
             const input = document.getElementById('timeOffset');
             if (input) {
@@ -308,49 +333,11 @@
             applyTimeOffset();
         }
 
-        // Calculate route distance to next upcoming checkpoint
-        function getNextCheckpointDetails(racerLat, racerLon) {
-            if (!routeGeoJSON || !parsedCheckpoints.length || typeof turf === 'undefined') {
-                return null;
-            }
-
-            try {
-                const runnerPt = turf.point([racerLon, racerLat]);
-                const routeLine = routeGeoJSON.features ? routeGeoJSON.features[0] : routeGeoJSON;
-                const snappedRunner = turf.nearestPointOnLine(routeLine, runnerPt);
-
-                let closestUpcoming = null;
-                let minDistanceAlongRoute = Infinity;
-
-                parsedCheckpoints.forEach(cp => {
-                    const cpPt = turf.point([cp.lon, cp.lat]);
-                    const snappedCp = turf.nearestPointOnLine(routeLine, cpPt);
-
-                    const sliced = turf.lineSlice(snappedRunner, snappedCp, routeLine);
-                    const distKm = turf.length(sliced, { units: 'kilometers' });
-
-                    if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
-                        minDistanceAlongRoute = distKm;
-                        closestUpcoming = {
-                            name: cp.name,
-                            distanceKm: distKm,
-                            timeStr: cp.timeStr
-                        };
-                    }
-                });
-
-                return closestUpcoming;
-            } catch (err) {
-                console.error("Distance calculation error:", err);
-                return null;
-            }
-        }
-
-        // 3. Load official checkpoints.
-        async function loadCheckpoints() {
+        // 3. Load merged JSON data (points.json)
+        async function loadPoints() {
             try {
                 const response = await fetch(
-                    'checkpoints-p26.json?t=' + Date.now(),
+                    'points.json?t=' + Date.now(),
                     { cache: 'no-store' }
                 );
 
@@ -361,7 +348,7 @@
                 const json = await response.json();
 
                 if (json.success && Array.isArray(json.data)) {
-                    rawCheckpointData = json.data;
+                    rawPointsData = json.data;
                     
                     const savedOffset = localStorage.getItem('checkpointTimeOffset');
                     if (savedOffset !== null) {
@@ -369,58 +356,25 @@
                         if (input) input.value = savedOffset;
                     }
 
-                    renderCheckpoints();
+                    renderPoints();
                     toggleLabels();
                 }
             } catch (error) {
-                console.error('Error loading checkpoints:', error);
+                console.error('Error loading points:', error);
             }
         }
 
-        // 4. Load optional manual cheerpoints.
-        async function loadCheerpoints() {
-            try {
-                const response = await fetch(
-                    'cheerpoints.json?t=' + Date.now(),
-                    { cache: 'no-store' }
-                );
-
-                if (!response.ok) {
-                    return;
-                }
-
-                const json = await response.json();
-
-                if (json.success && Array.isArray(json.data)) {
-                    rawCheerpointData = json.data;
-                    renderCheerpoints();
-                    toggleLabels();
-                }
-            } catch (error) {
-                console.error('Error loading cheerpoints:', error);
-            }
-        }
-
-        // 5. Toggle checkpoint and cheerpoint labels.
         function toggleLabels() {
             const checkbox = document.getElementById('toggle-labels');
-
-            if (!checkbox) {
-                return;
-            }
-
+            if (!checkbox) return;
             const show = checkbox.checked;
-
-            [...checkpointLayers, ...cheerpointLayers].forEach(layer => {
-                if (show) {
-                    layer.openTooltip();
-                } else {
-                    layer.closeTooltip();
-                }
+            pointLayers.forEach(layer => {
+                if (show) layer.openTooltip();
+                else layer.closeTooltip();
             });
         }
 
-        // 6. Fetch and display the latest racer position.
+        // 4. Fetch and display the latest racer position with distance traveled & ETA
         async function updateTracker() {
             try {
                 const response = await fetch(
@@ -440,9 +394,7 @@
                     !json.data ||
                     typeof json.data.ll !== 'string'
                 ) {
-                    throw new Error(
-                        'Unexpected tracking JSON structure or missing coordinates'
-                    );
+                    throw new Error('Unexpected tracking JSON structure or missing coordinates');
                 }
 
                 const teamData = json.data;
@@ -455,81 +407,96 @@
                     Math.abs(parts[0]) > 90 ||
                     Math.abs(parts[1]) > 180
                 ) {
-                    throw new Error(
-                        'Invalid latitude/longitude: ' + teamData.ll
-                    );
+                    throw new Error('Invalid latitude/longitude: ' + teamData.ll);
                 }
 
                 const lat = parts[0];
                 const lon = parts[1];
-                const name = teamData.n || 'Team 5535';
-                const raceNumber = teamData.r || 5535;
 
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 
-                let nextCpInfoHtml = '';
-                const nextCp = getNextCheckpointDetails(lat, lon);
-                if (nextCp) {
-                    const distMiles = (nextCp.distanceKm * 0.621371).toFixed(2);
-                    nextCpInfoHtml = `<br><b>Next:</b> ${nextCp.name}<br>` +
-                                     `<b>Distance along route:</b> ${distMiles} mi (${nextCp.distanceKm.toFixed(2)} km)<br>`;
+                let popupTitle = '';
+                let statsHtml = '';
+
+                if (cleanRouteLine && typeof turf !== 'undefined') {
+                    try {
+                        const runnerPt = turf.point([lon, lat]);
+                        const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
+                        
+                        // 1. Distance traveled from start of KML route
+                        const coords = turf.getCoords(cleanRouteLine);
+                        const startPt = turf.point(coords[0]);
+                        const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
+                        const traveledKm = turf.length(traveledSlice, { units: 'kilometers' });
+                        
+                        // Distance in km as title
+                        popupTitle = `<b>${traveledKm.toFixed(2)} km</b><br>`;
+
+                        // 2. Find next upcoming point & distance/ETA
+                        let closestUpcoming = null;
+                        let minDistanceAlongRoute = Infinity;
+
+                        parsedPoints.forEach(pt => {
+                            const ptPt = turf.point([pt.lon, pt.lat]);
+                            const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                            const sliced = turf.lineSlice(snappedRunner, snappedPt, cleanRouteLine);
+                            const distKm = turf.length(sliced, { units: 'kilometers' });
+
+                            if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
+                                minDistanceAlongRoute = distKm;
+                                closestUpcoming = {
+                                    name: pt.name,
+                                    distanceKm: distKm,
+                                    timeStr: pt.timeStr,
+                                    type: pt.type
+                                };
+                            }
+                        });
+
+                        if (closestUpcoming) {
+                            const nextMiles = (closestUpcoming.distanceKm * 0.621371).toFixed(2);
+                            
+                            // Calculate ETA (Live pace vs scheduled fallback)
+                            let etaString = closestUpcoming.timeStr ? 
+                                `${closestUpcoming.timeStr.substring(0, 2)}:${closestUpcoming.timeStr.substring(2, 4)} (Scheduled)` : 'TBD';
+
+                            const now = new Date();
+                            if (parsedPoints.length > 0 && parsedPoints[0].timeStr) {
+                                const startHm = parsedPoints[0].timeStr;
+                                const startTime = new Date(now);
+                                startTime.setHours(parseInt(startHm.substring(0, 2), 10), parseInt(startHm.substring(2, 4), 10), 0, 0);
+
+                                const elapsedMins = (now - startTime) / 60000;
+                                if (elapsedMins > 2 && traveledKm > 0.1) {
+                                    const speedKmPerMin = traveledKm / elapsedMins;
+                                    if (speedKmPerMin > 0.01) {
+                                        const remMins = closestUpcoming.distanceKm / speedKmPerMin;
+                                        const etaDate = new Date(now.getTime() + remMins * 60000);
+                                        etaString = etaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) + ' (Live Pace)';
+                                    }
+                                }
+                            }
+
+                            statsHtml += `<b>Next:</b> ${closestUpcoming.name} (${nextMiles} mi / ${closestUpcoming.distanceKm.toFixed(2)} km)<br>` +
+                                         `<b>ETA:</b> ${etaString}<br>`;
+                        }
+                    } catch (err) {
+                        console.error("Calculation error handled safely:", err);
+                    }
                 }
 
                 const popupContent =
-                    `<b>${name} (#${raceNumber})</b><br>` +
-                    `Lat/Lon: ${lat.toFixed(6)}, ${lon.toFixed(6)}<br>` +
-                    `${nextCpInfoHtml}` +
-                    `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
-                    `📍 Open in Google Maps</a>`;
+                    popupTitle +
+                    statsHtml +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
 
-                const timeString = new Date().toLocaleTimeString();
-                console.log(`[${timeString}] Team ${raceNumber} coordinates: ${lat}, ${lon}`);
-
-                const lastUpdateEl = document.getElementById('last-update');
-                if (lastUpdateEl) {
-                    lastUpdateEl.innerText = `Last updated: ${timeString}`;
-                }
-
-                if (marker) {
-                    marker.setLatLng([lat, lon]);
-                    marker.setPopupContent(popupContent);
-                } else {
-                    marker = L.marker([lat, lon], {
-                        icon: L.divIcon({
-                            className: '',
-                            html: '<div class="racer-icon">🏃</div>',
-                            iconSize: [36, 36],
-                            iconAnchor: [18, 18],
-                            popupAnchor: [0, -18]
-                        }),
-                        zIndexOffset: 1000
-                    })
-                    .addTo(map)
-                    .bindPopup(popupContent);
-
-                    firstPositionReceived = true;
-                    map.setView([lat, lon], 15);
-                }
-
-            } catch (error) {
-                console.error('Error updating racer marker:', error);
-                const lastUpdateEl = document.getElementById('last-update');
-                if (lastUpdateEl) {
-                    lastUpdateEl.innerText = `Update failed (${new Date().toLocaleTimeString()})`;
-                }
-            }
-        }
-
-        map.on('click', function () {
-            map.closePopup();
-        });
-
-        // 7. Start everything up.
-        loadCheckpoints();
-        loadCheerpoints();
-
-        updateTracker();
-        setInterval(updateTracker, 30000);
-    </script>
-</body>
-</html>
+                // Update or create marker popup
+                if (!marker) {
+                    const runnerIcon = L.divIcon({
+                        className: 'racer-icon',
+                        html: '🏃',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                        popupAnchor: [0, -18]
+                    });
+                    marker = 
