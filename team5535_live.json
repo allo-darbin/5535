@@ -8,22 +8,22 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "0.00",
+    "sp": "13.90",
     "a": 0,
     "cl": "",
     "d": null,
-    "lc": "Start",
-    "ll": "56.121558,-3.909465",
+    "lc": "Freedom",
+    "ll": "56.120356,-3.909917",
     "co": "#2094f3",
     "tco": "#ffffff",
-    "t": "",
+    "t": "00:00:27",
     "g": "Team of 3",
     "f": "",
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 07:44",
-    "dt": "2026-10-10 07:44:57",
+    "lt": "10 Oct 26 07:45",
+    "dt": "2026-10-10 07:45:57",
     "fin": 0,
     "ic": null,
     "b": 95,
@@ -133,14 +133,14 @@
         "ct": "finish",
         "dwell": null,
         "ds": null,
-        "t": "",
-        "s": "",
-        "ss": 0,
+        "t": "Sat 07:45:27",
+        "s": "00:00:27",
+        "ss": 27,
         "p": 0,
         "pt": null,
         "note": "",
-        "v": null,
-        "sss": "00:00:00"
+        "v": "2026-10-10 07:45:27",
+        "sss": "00:00:27"
       }
     ],
     "mailheader": null,
@@ -150,10 +150,12 @@
     "jg": null,
     "profile": null,
     "details": {
-      "Last Timed Location": "Start",
+      "Time Taken": "00:00:27",
+      "Last Timed Location": "Freedom",
       "Group": "Team of 3",
+      "Speed": "13.9 kph",
       "Battery": "95%",
-      "Last Tracked": "10 Oct 07:44"
+      "Last Tracked": "10 Oct 07:45"
     }
   }
 }
