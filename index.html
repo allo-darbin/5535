@@ -137,9 +137,9 @@
 
 <body>
     <div class="info-box">
-        <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+        <label style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #666; cursor: pointer; margin-bottom: 8px;">
+            Show marker labels:
             <input type="checkbox" id="toggle-labels" onchange="toggleLabels()">
-            Show Marker Labels
         </label>
         <div style="border-top: 1px solid #eee; padding-top: 8px;">
             <label for="timeOffset" style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #666; cursor: pointer;">
@@ -547,7 +547,7 @@
                                     name: pt.name,
                                     distanceKm: distKm,
                                     timeStr: pt.timeStr,
-                                    type: pt.point_type
+                                    type: pt.type
                                 };
                             }
                         });
