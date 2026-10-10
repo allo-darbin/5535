@@ -10,11 +10,15 @@ from pathlib import Path
 # Configuration
 URL = (
     "https://editor.opentracking.com/event/"
-    #team "26ww50km/details?id=5535&e=21331"
-    "26ww70km/details?id=7066&e=21330" #individual
+    "26ww70km/details?id=7066&e=21330" # individual
 )
 
 FILENAME = Path("team5535_live.json")
+
+# Folder outside your git repo to save snapshots for post-race replay testing
+BACKUP_DIR = Path(r"C:\Users\J\Desktop\race-updates-5335\darren")
+BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+
 INTERVAL = 60
 
 session = requests.Session()
@@ -100,7 +104,6 @@ def fetch_and_commit():
             return
 
         parse_elapsed = time.monotonic() - parse_started
-        #log(f"JSON validation completed in {parse_elapsed:.2f}s.")
 
         # 3. Write safely without risking the previous valid file
         write_started = time.monotonic()
@@ -111,8 +114,14 @@ def fetch_and_commit():
 
         os.replace(temp_file, FILENAME)
 
+        # --- LOCAL OFFLINE SNAPSHOT BACKUP (Outside Git Repo) ---
+        timestamp = time.strftime('%Y-%m-%d_%H-%M-%S')
+        backup_file = BACKUP_DIR / f"snap_{timestamp}.json"
+        with open(backup_file, "w", encoding="utf-8") as bf:
+            json.dump(data, bf, ensure_ascii=False, indent=2)
+        # --------------------------------------------------------
+
         write_elapsed = time.monotonic() - write_started
-        #log(f"JSON file written in {write_elapsed:.2f}s.")
 
         # 4. Stage only the tracking data file
         stage_started = time.monotonic()
@@ -125,7 +134,6 @@ def fetch_and_commit():
         )
 
         stage_elapsed = time.monotonic() - stage_started
-        #log(f"Git staging completed in {stage_elapsed:.2f}s.")
 
         # 5. Skip commit and push when the file is unchanged
         result = subprocess.run(
@@ -197,11 +205,11 @@ def fetch_and_commit():
             temp_file.unlink()
 
         cycle_elapsed = time.monotonic() - cycle_started
-        #log(f"Total cycle time: {cycle_elapsed:.2f}s.")
 
 
 if __name__ == "__main__":
     log(f"Tracker started; polling every {INTERVAL} seconds.")
+    log(f"Offline snapshots saving to: {BACKUP_DIR}")
     log("Press Ctrl+C to stop.")
 
     try:
