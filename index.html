@@ -516,10 +516,36 @@
                     lastTrackerUpdateTime = now;
                 }
 
+                // Check if the runner has finished by inspecting the splits for a "Freedom" entry with a valid finish time
+                let finishTimeStr = null;
+                let raceTimeStr = null;
+                if (json.data.splits && Array.isArray(json.data.splits)) {
+                    const finishSplit = json.data.splits.find(s => s.n && s.n.toLowerCase() === 'freedom' && s.t);
+                    if (finishSplit) {
+                        // e.g. "Sat 12:40:24" -> strip day prefix to get "12:40:24"
+                        const rawTime = finishSplit.t;
+                        const timeMatch = rawTime.match(/(\d{2}:\d{2}:\d{2})/);
+                        if (timeMatch) {
+                            finishTimeStr = timeMatch[1];
+                        } else {
+                            finishTimeStr = rawTime.replace(/^[A-Za-z]+\s+/, '');
+                        }
+                    }
+                }
+                if (json.data.details && json.data.details["Time Taken"]) {
+                    raceTimeStr = json.data.details["Time Taken"];
+                } else if (json.data.t) {
+                    raceTimeStr = json.data.t;
+                }
+
                 let popupTitle = '';
                 let statsHtml = '';
 
-                if (cleanRouteLine && typeof turf !== 'undefined') {
+                if (finishTimeStr) {
+                    // Runner has finished! Show finish details instead of remaining distance & next waypoint
+                    popupTitle = `<b>Finished at ${finishTimeStr}</b><br>` +
+                                 `Race time: ${raceTimeStr || 'N/A'}<br>`;
+                } else if (cleanRouteLine && typeof turf !== 'undefined') {
                     try {
                         const runnerPt = turf.point([lon, lat]);
                         const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
@@ -590,6 +616,11 @@
                 // Re-render points using the effective speed and locked past targets
                 renderPoints();
                 toggleLabels();
+
+                // If finished, we can also append speed/status if wanted, or keep it clean
+                if (finishTimeStr) {
+                    statsHtml += `<b>Speed:</b> ${speedDisplay}<br>`;
+                }
 
                 const popupContent =
                     popupTitle +
