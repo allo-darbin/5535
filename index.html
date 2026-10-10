@@ -121,12 +121,11 @@
             line-height: 36px;
             text-align: center;
             filter: drop-shadow(1px 2px 2px #555);
-            transition: transform 0.3s ease;
         }
 
-        /* Flip the running icon horizontally when moving right */
-        .racer-icon.flip-right {
-            transform: scaleX(-1);
+        /* Flip the Leaflet marker wrapper horizontally when moving right */
+        .leaflet-marker-icon.flip-right {
+            transform: scaleX(-1) !important;
         }
 
         /* Slim vertical separator between controls */
@@ -675,7 +674,7 @@
 
                 if (!marker) {
                     const runnerIcon = L.divIcon({
-                        className: `racer-icon ${isMovingRight ? 'flip-right' : ''}`,
+                        className: 'racer-icon',
                         html: '🏃‍♂️',
                         iconSize: [36, 36],
                         iconAnchor: [18, 18],
@@ -694,16 +693,13 @@
                     marker.setLatLng([lat, lon]);
                     marker.getPopup().setContent(popupContent);
 
-                    // Update icon direction dynamically based on movement
+                    // Update Leaflet marker wrapper element class for direction
                     const iconEl = marker.getElement();
                     if (iconEl) {
-                        const iconDiv = iconEl.querySelector('.racer-icon');
-                        if (iconDiv) {
-                            if (isMovingRight) {
-                                iconDiv.classList.add('flip-right');
-                            } else {
-                                iconDiv.classList.remove('flip-right');
-                            }
+                        if (isMovingRight) {
+                            iconEl.classList.add('flip-right');
+                        } else {
+                            iconEl.classList.remove('flip-right');
                         }
                     }
 
