@@ -499,4 +499,33 @@
                         iconAnchor: [18, 18],
                         popupAnchor: [0, -18]
                     });
-                    marker = 
+                    marker = L.marker([lat, lon], { icon: runnerIcon }).addTo(map);
+                    marker.bindPopup(popupContent);
+                } else {
+                    marker.setLatLng([lat, lon]);
+                    marker.getPopup().setContent(popupContent);
+                }
+
+                if (!firstPositionReceived) {
+                    map.setView([lat, lon], 14);
+                    firstPositionReceived = true;
+                }
+
+                const statusEl = document.getElementById('last-update');
+                if (statusEl) {
+                    const now = new Date();
+                    statusEl.innerText = `Last updated: ${now.toLocaleTimeString()}`;
+                }
+            } catch (error) {
+                console.error('Error updating tracker:', error);
+            }
+        }
+
+        // Initialize application
+        loadPoints().then(() => {
+            updateTracker();
+            setInterval(updateTracker, 15000); // Poll every 15 seconds
+        });
+    </script>
+</body>
+</html>
