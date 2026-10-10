@@ -13,7 +13,7 @@
     "cl": "",
     "d": null,
     "lc": "Wallace Monument",
-    "ll": "56.136583,-3.916497",
+    "ll": "56.136436,-3.915634",
     "co": "#4cae4f",
     "tco": "#ffffff",
     "t": "11:23:06",
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 18:29",
-    "dt": "2026-10-10 18:29:35",
+    "lt": "10 Oct 26 18:31",
+    "dt": "2026-10-10 18:31:05",
     "fin": 0,
     "ic": null,
     "b": 57,
@@ -151,7 +151,7 @@
       "Last Timed Location": "Wallace Monument",
       "Group": "MOpen",
       "Battery": "57%",
-      "Last Tracked": "10 Oct 18:29",
+      "Last Tracked": "10 Oct 18:31",
       "Total Dwell": "00:32:56"
     }
   }
