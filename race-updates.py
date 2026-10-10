@@ -1,4 +1,5 @@
-# run as python race-updates.py
+# Run as: python race-updates.py
+
 import json
 import time
 import subprocess
@@ -30,11 +31,21 @@ def log(message):
 
 
 def fetch_and_commit():
+    cycle_started = time.monotonic()
     temp_file = FILENAME.with_suffix(".tmp")
 
     try:
         # 1. Fetch the tracking data
+        fetch_started = time.monotonic()
+
         response = session.get(URL, timeout=15)
+
+        fetch_elapsed = time.monotonic() - fetch_started
+
+        log(
+            f"OpenTracking response: HTTP {response.status_code} "
+            f"in {fetch_elapsed:.2f}s."
+        )
 
         if not response.ok:
             log(f"Fetch failed: HTTP {response.status_code}")
@@ -42,6 +53,8 @@ def fetch_and_commit():
             return
 
         # 2. Parse and validate the JSON
+        parse_started = time.monotonic()
+
         try:
             data = response.json()
         except ValueError:
@@ -56,17 +69,52 @@ def fetch_and_commit():
         ):
             log("Unexpected response structure; keeping previous data.")
             return
+
         coordinates = data["data"].get("ll")
         log(f"Live coordinates: {coordinates}")
 
+        # Validate that coordinates are present and usable
+        if not isinstance(coordinates, str):
+            log("Missing or invalid coordinates; keeping previous data.")
+            return
+
+        parts = coordinates.split(",")
+
+        if len(parts) != 2:
+            log("Invalid coordinate format; keeping previous data.")
+            return
+
+        try:
+            lat, lon = map(float, parts)
+        except ValueError:
+            log("Invalid coordinate values; keeping previous data.")
+            return
+
+        if (
+            not (-90 <= lat <= 90)
+            or not (-180 <= lon <= 180)
+        ):
+            log("Coordinates out of range; keeping previous data.")
+            return
+
+        parse_elapsed = time.monotonic() - parse_started
+        #log(f"JSON validation completed in {parse_elapsed:.2f}s.")
+
         # 3. Write safely without risking the previous valid file
+        write_started = time.monotonic()
+
         with open(temp_file, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
             f.write("\n")
 
         os.replace(temp_file, FILENAME)
 
+        write_elapsed = time.monotonic() - write_started
+        #log(f"JSON file written in {write_elapsed:.2f}s.")
+
         # 4. Stage only the tracking data file
+        stage_started = time.monotonic()
+
         subprocess.run(
             ["git", "add", "--", str(FILENAME)],
             check=True,
@@ -74,10 +122,19 @@ def fetch_and_commit():
             text=True,
         )
 
+        stage_elapsed = time.monotonic() - stage_started
+        #log(f"Git staging completed in {stage_elapsed:.2f}s.")
+
         # 5. Skip commit and push when the file is unchanged
         result = subprocess.run(
-            ["git", "diff", "--cached", "--quiet",
-             "--", str(FILENAME)],
+            [
+                "git",
+                "diff",
+                "--cached",
+                "--quiet",
+                "--",
+                str(FILENAME),
+            ],
             capture_output=True,
         )
 
@@ -89,18 +146,29 @@ def fetch_and_commit():
             raise RuntimeError("Could not check staged changes.")
 
         # 6. Commit only this file, not other staged files
+        commit_started = time.monotonic()
+
         subprocess.run(
             [
-                "git", "commit", "--only",
-                "-m", f"Update race data {time.strftime('%Y-%m-%d %H:%M:%S')}",
-                "--", str(FILENAME),
+                "git",
+                "commit",
+                "--only",
+                "-m",
+                f"Update race data {time.strftime('%Y-%m-%d %H:%M:%S')}",
+                "--",
+                str(FILENAME),
             ],
             check=True,
             capture_output=True,
             text=True,
         )
 
+        commit_elapsed = time.monotonic() - commit_started
+        log(f"Git commit completed in {commit_elapsed:.2f}s.")
+
         # 7. Push using your configured Git credentials
+        push_started = time.monotonic()
+
         subprocess.run(
             ["git", "push"],
             check=True,
@@ -109,6 +177,8 @@ def fetch_and_commit():
             timeout=45,
         )
 
+        push_elapsed = time.monotonic() - push_started
+        log(f"Git push completed in {push_elapsed:.2f}s.")
         log("Tracking data committed and pushed successfully.")
 
     except requests.RequestException as e:
@@ -124,6 +194,9 @@ def fetch_and_commit():
         if temp_file.exists():
             temp_file.unlink()
 
+        cycle_elapsed = time.monotonic() - cycle_started
+        #log(f"Total cycle time: {cycle_elapsed:.2f}s.")
+
 
 if __name__ == "__main__":
     log(f"Tracker started; polling every {INTERVAL} seconds.")
@@ -132,7 +205,9 @@ if __name__ == "__main__":
     try:
         while True:
             started = time.monotonic()
+
             fetch_and_commit()
+
             elapsed = time.monotonic() - started
             time.sleep(max(0, INTERVAL - elapsed))
 
