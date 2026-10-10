@@ -169,7 +169,7 @@
         ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
             document.addEventListener(evt, () => {
                 const btn = document.getElementById('fullscreenBtn');
-                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullscreenElement || document.msFullscreenElement);
                 if (btn) btn.innerText = isFS ? 'Exit Fullscreen' : '⛶ Fullscreen';
             });
         });
@@ -185,7 +185,6 @@
             attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community'
         });
 
-        // Retrieve saved layer preference, defaulting to osmLayer
         const savedLayerName = localStorage.getItem('selectedMapLayer');
         const initialLayer = (savedLayerName === 'Satellite View') ? satelliteLayer : osmLayer;
 
@@ -202,7 +201,6 @@
 
         L.control.layers(baseMaps, null, { position: 'topleft' }).addTo(map);
 
-        // Save preference when user changes layers
         map.on('baselayerchange', function (e) {
             localStorage.setItem('selectedMapLayer', e.name);
         });
@@ -214,14 +212,12 @@
         let firstPositionReceived = false;
         let cleanRouteLine = null; // Clean single LineString for Turf
 
-        // Tracking state for coordinate change detection
         let lastKnownCoords = null;
         let globalRunnerSpeedKmPerMin = 0;
         let globalRunnerTraveledKm = 0;
         let lastCachedPopupTitle = '';
         let lastCachedStatsHtml = '';
 
-        // Helper to extract clean single LineString from any complex GeoJSON/KML structure
         function extractLineString(geoJson) {
             try {
                 let coords = [];
@@ -237,7 +233,6 @@
             return null;
         }
 
-        // 2. Load the KML route.
         omnivore.kml('route.kml')
             .on('ready', function () {
                 this.setStyle({
@@ -250,7 +245,6 @@
                     map.fitBounds(this.getBounds());
                 }
 
-                // Convert loaded KML to a unified single LineString
                 cleanRouteLine = extractLineString(this.toGeoJSON());
             })
             .on('error', function (error) {
@@ -258,7 +252,6 @@
             })
             .addTo(map);
 
-        // Helper to parse HHMM string, add offset minutes, and return new HHMM string
         function adjustTimeString(timeStr, offsetMinutes) {
             let hours = parseInt(timeStr.substring(0, 2), 10);
             let mins = parseInt(timeStr.substring(2, 4), 10);
@@ -272,7 +265,6 @@
             return newHours + newMins;
         }
 
-        // Render points taking time offset into account
         function renderPoints() {
             pointLayers.forEach(layer => map.removeLayer(layer));
             pointLayers = [];
@@ -389,18 +381,10 @@
             applyTimeOffset();
         }
 
-        // 3. Load merged JSON data (points.json)
         async function loadPoints() {
             try {
-                const response = await fetch(
-                    'points.json?t=' + Date.now(),
-                    { cache: 'no-store' }
-                );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
+                const response = await fetch('points.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const json = await response.json();
 
                 if (json.success && Array.isArray(json.data)) {
@@ -430,41 +414,20 @@
             });
         }
 
-        // 4. Fetch and display the latest racer position
         async function updateTracker() {
             try {
-                const response = await fetch(
-                    'team5535_live.json?t=' + Date.now(),
-                    { cache: 'no-store' }
-                );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
+                const response = await fetch('team5535_live.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const json = await response.json();
 
-                if (
-                    !json ||
-                    json.success !== true ||
-                    !json.data ||
-                    typeof json.data.ll !== 'string'
-                ) {
-                    throw new Error('Unexpected tracking JSON structure or missing coordinates');
+                if (!json || json.success !== true || !json.data || typeof json.data.ll !== 'string') {
+                    throw new Error('Unexpected tracking JSON structure');
                 }
 
-                const teamData = json.data;
-                const rawLl = teamData.ll;
+                const rawLl = json.data.ll;
                 const parts = rawLl.split(',').map(Number);
-
-                if (
-                    parts.length !== 2 ||
-                    !Number.isFinite(parts[0]) ||
-                    !Number.isFinite(parts[1]) ||
-                    Math.abs(parts[0]) > 90 ||
-                    Math.abs(parts[1]) > 180
-                ) {
-                    throw new Error('Invalid latitude/longitude: ' + rawLl);
+                if (parts.length !== 2 || !Number.isFinite(parts[0]) || !Number.isFinite(parts[1])) {
+                    throw new Error('Invalid coordinates');
                 }
 
                 const lat = parts[0];
@@ -516,90 +479,4 @@
                                     closestUpcoming = {
                                         name: pt.name,
                                         distanceKm: distKm,
-                                        timeStr: pt.timeStr,
-                                        type: pt.type
-                                    };
-                                }
-                            });
-
-                            lastCachedStatsHtml = '';
-                            if (closestUpcoming) {
-                                let etaString = 'TBD';
-
-                                if (closestUpcoming.timeStr) {
-                                    const schedHours = parseInt(closestUpcoming.timeStr.substring(0, 2), 10);
-                                    const schedMins = parseInt(closestUpcoming.timeStr.substring(2, 4), 10);
-                                    const schedTime = new Date(now);
-                                    schedTime.setHours(schedHours, schedMins, 0, 0);
-
-                                    const diffMins = Math.round((schedTime - now) / 60000);
-                                    const formattedTime = `${closestUpcoming.timeStr.substring(0, 2)}${closestUpcoming.timeStr.substring(2, 4)}`;
-
-                                    if (diffMins > 0) {
-                                        etaString = `${diffMins} mins (${formattedTime})`;
-                                    } else if (diffMins === 0) {
-                                        etaString = `Now (${formattedTime})`;
-                                    } else {
-                                        etaString = `${Math.abs(diffMins)} mins ago (${formattedTime})`;
-                                    }
-
-                                    if (globalRunnerSpeedKmPerMin > 0.01) {
-                                        const liveRemMins = Math.round(closestUpcoming.distanceKm / globalRunnerSpeedKmPerMin);
-                                        etaString = `${liveRemMins} mins (${formattedTime})`;
-                                    }
-                                }
-
-                                lastCachedStatsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
-                                                      `<b>ETA:</b> ${etaString}<br>`;
-                            }
-                        } catch (err) {
-                            console.error("Calculation error handled safely:", err);
-                        }
-                    }
-                }
-
-                const popupContent =
-                    lastCachedPopupTitle +
-                    lastCachedStatsHtml +
-                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
-
-                if (!marker) {
-                    const runnerIcon = L.divIcon({
-                        className: 'racer-icon',
-                        html: '🏃',
-                        iconSize: [36, 36],
-                        iconAnchor: [18, 18],
-                        popupAnchor: [0, -18]
-                    });
-                    marker = L.marker([lat, lon], { icon: runnerIcon }).addTo(map);
-                    marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
-                    marker.openPopup();
-                    
-                    map.setView([lat, lon], 14);
-                    firstPositionReceived = true;
-                } else {
-                    marker.setLatLng([lat, lon]);
-                    marker.getPopup().setContent(popupContent);
-                    if (!marker.isPopupOpen()) {
-                        marker.openPopup();
-                    }
-                }
-
-                const statusEl = document.getElementById('last-update');
-                if (statusEl) {
-                    const now = new Date();
-                    statusEl.innerText = `Last updated: ${now.toLocaleTimeString()}`;
-                }
-            } catch (error) {
-                console.error('Error updating tracker:', error);
-            }
-        }
-
-        // Initialize application
-        loadPoints().then(() => {
-            updateTracker();
-            setInterval(updateTracker, 15000); // Poll every 15 seconds
-        });
-    </script>
-</body>
-</html>
+                        
