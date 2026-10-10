@@ -42,7 +42,6 @@
             color: #444;
         }
 
-        /* Fullscreen floating overlay in bottom-right */
         .fullscreen-overlay {
             position: absolute;
             bottom: 15px;
@@ -66,12 +65,10 @@
             background: #f0f0f0;
         }
 
-        /* Prevent layer control from overlapping zoom +/- buttons */
         .leaflet-top.leaflet-left .leaflet-control-layers {
             margin-top: 10px;
         }
 
-        /* Standalone "Last Updated" text overlay in bottom-left corner */
         .status-overlay {
             position: absolute;
             bottom: 15px;
@@ -123,19 +120,16 @@
         </div>
     </div>
 
-    <!-- Floating Fullscreen button at bottom-right -->
     <div class="fullscreen-overlay">
         <button id="fullscreenBtn" class="fullscreen-btn" onclick="toggleFullScreen()">⛶ Fullscreen</button>
     </div>
 
-    <!-- Standalone text overlay at bottom-left -->
     <div id="last-update" class="status-overlay">Tracking active...</div>
 
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
-    <!-- Turf.js for route distance calculations -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <script>
@@ -174,7 +168,6 @@
             });
         });
 
-        // 1. Initialise base maps and layer switcher.
         const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
@@ -203,9 +196,8 @@
         let rawPointsData = [];
         let parsedPoints = [];
         let firstPositionReceived = false;
-        let cleanRouteLine = null; // Clean single LineString for Turf
+        let cleanRouteLine = null;
 
-        // Helper to extract clean single LineString from any complex GeoJSON/KML structure
         function extractLineString(geoJson) {
             try {
                 let coords = [];
@@ -221,7 +213,6 @@
             return null;
         }
 
-        // 2. Load the KML route.
         omnivore.kml('route.kml')
             .on('ready', function () {
                 this.setStyle({
@@ -234,7 +225,6 @@
                     map.fitBounds(this.getBounds());
                 }
 
-                // Convert loaded KML to a unified single LineString
                 cleanRouteLine = extractLineString(this.toGeoJSON());
             })
             .on('error', function (error) {
@@ -242,7 +232,6 @@
             })
             .addTo(map);
 
-        // Helper to parse HHMM string, add offset minutes, and return new HHMM string
         function adjustTimeString(timeStr, offsetMinutes) {
             let hours = parseInt(timeStr.substring(0, 2), 10);
             let mins = parseInt(timeStr.substring(2, 4), 10);
@@ -256,7 +245,6 @@
             return newHours + newMins;
         }
 
-        // Render points taking time offset into account
         function renderPoints() {
             pointLayers.forEach(layer => map.removeLayer(layer));
             pointLayers = [];
@@ -296,8 +284,7 @@
                 .bindPopup(
                     `<b>${displayName}</b><br>` +
                     `<small>(${isCheckpoint ? 'Checkpoint' : 'Cheerpoint'})</small><br>` +
-                    `<a href="${mapsUrl}" target="_blank" rel="noopener">` +
-                    `📍 Open in Google Maps</a>`
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`
                 )
                 .bindTooltip(
                     `<b>${displayName}</b>`,
@@ -333,18 +320,10 @@
             applyTimeOffset();
         }
 
-        // 3. Load merged JSON data (points.json)
         async function loadPoints() {
             try {
-                const response = await fetch(
-                    'points.json?t=' + Date.now(),
-                    { cache: 'no-store' }
-                );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
+                const response = await fetch('points.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const json = await response.json();
 
                 if (json.success && Array.isArray(json.data)) {
@@ -374,45 +353,23 @@
             });
         }
 
-        // 4. Fetch and display the latest racer position with distance remaining & ETA
         async function updateTracker() {
             try {
-                const response = await fetch(
-                    'team5535_live.json?t=' + Date.now(),
-                    { cache: 'no-store' }
-                );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-
+                const response = await fetch('team5535_live.json?t=' + Date.now(), { cache: 'no-store' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const json = await response.json();
 
-                if (
-                    !json ||
-                    json.success !== true ||
-                    !json.data ||
-                    typeof json.data.ll !== 'string'
-                ) {
-                    throw new Error('Unexpected tracking JSON structure or missing coordinates');
+                if (!json || json.success !== true || !json.data || typeof json.data.ll !== 'string') {
+                    throw new Error('Unexpected tracking JSON structure');
                 }
 
-                const teamData = json.data;
-                const parts = teamData.ll.split(',').map(Number);
-
-                if (
-                    parts.length !== 2 ||
-                    !Number.isFinite(parts[0]) ||
-                    !Number.isFinite(parts[1]) ||
-                    Math.abs(parts[0]) > 90 ||
-                    Math.abs(parts[1]) > 180
-                ) {
-                    throw new Error('Invalid latitude/longitude: ' + teamData.ll);
+                const parts = json.data.ll.split(',').map(Number);
+                if (parts.length !== 2 || !Number.isFinite(parts[0]) || !Number.isFinite(parts[1])) {
+                    throw new Error('Invalid coordinates');
                 }
 
                 const lat = parts[0];
                 const lon = parts[1];
-
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
 
                 let popupTitle = '';
@@ -496,4 +453,39 @@
                                 }
                             }
 
-                          
+                            statsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
+                                         `<b>ETA:</b> ${etaString}<br>`;
+                        }
+                    } catch (err) {
+                        console.error("Calculation error:", err);
+                    }
+                }
+
+                const popupContent =
+                    popupTitle +
+                    statsHtml +
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
+
+                if (!marker) {
+                    const runnerIcon = L.divIcon({
+                        className: 'racer-icon',
+                        html: '🏃',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 18],
+                        popupAnchor: [0, -18]
+                    });
+                    marker = L.marker([lat, lon], { icon: runnerIcon }).addTo(map);
+                    marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
+                    marker.openPopup();
+                } else {
+                    marker.setLatLng([lat, lon]);
+                    marker.getPopup().setContent(popupContent);
+                    if (!marker.isPopupOpen()) {
+                        marker.openPopup();
+                    }
+                }
+
+                if (!firstPositionReceived) {
+                    map.setView([lat, lon], 14);
+                    firstPositionReceived = true;
+   
