@@ -374,7 +374,7 @@
             });
         }
 
-        // 4. Fetch and display the latest racer position with distance traveled & ETA
+        // 4. Fetch and display the latest racer position with distance to go & ETA
         async function updateTracker() {
             try {
                 const response = await fetch(
@@ -423,16 +423,17 @@
                         const runnerPt = turf.point([lon, lat]);
                         const snappedRunner = turf.nearestPointOnLine(cleanRouteLine, runnerPt);
                         
-                        // 1. Distance traveled from start of KML route
+                        // Distance to go calculations
+                        const totalRouteKm = turf.length(cleanRouteLine, { units: 'kilometers' });
                         const coords = turf.getCoords(cleanRouteLine);
                         const startPt = turf.point(coords[0]);
                         const traveledSlice = turf.lineSlice(startPt, snappedRunner, cleanRouteLine);
                         const traveledKm = turf.length(traveledSlice, { units: 'kilometers' });
+                        const remainingKm = Math.max(0, totalRouteKm - traveledKm);
                         
-                        // Distance in km as title
-                        popupTitle = `<b>${traveledKm.toFixed(2)} km</b><br>`;
+                        popupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
 
-                        // 2. Find next upcoming point & distance/ETA
+                        // Find next upcoming point & distance/ETA
                         let closestUpcoming = null;
                         let minDistanceAlongRoute = Infinity;
 
@@ -444,8 +445,15 @@
 
                             if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
                                 minDistanceAlongRoute = distKm;
+                                
+                                let cleanName = pt.name;
+                                const timeMatch = cleanName.match(/^\d{4}\s+(.*)$/);
+                                if (timeMatch) {
+                                    cleanName = timeMatch[1];
+                                }
+
                                 closestUpcoming = {
-                                    name: pt.name,
+                                    name: cleanName,
                                     distanceKm: distKm,
                                     timeStr: pt.timeStr,
                                     type: pt.type
@@ -454,49 +462,36 @@
                         });
 
                         if (closestUpcoming) {
-                            const nextMiles = (closestUpcoming.distanceKm * 0.621371).toFixed(2);
-                            
-                            // Calculate ETA (Live pace vs scheduled fallback)
-                            let etaString = closestUpcoming.timeStr ? 
-                                `${closestUpcoming.timeStr.substring(0, 2)}:${closestUpcoming.timeStr.substring(2, 4)} (Scheduled)` : 'TBD';
-
                             const now = new Date();
-                            if (parsedPoints.length > 0 && parsedPoints[0].timeStr) {
-                                const startHm = parsedPoints[0].timeStr;
-                                const startTime = new Date(now);
-                                startTime.setHours(parseInt(startHm.substring(0, 2), 10), parseInt(startHm.substring(2, 4), 10), 0, 0);
+                            let etaString = 'TBD';
 
-                                const elapsedMins = (now - startTime) / 60000;
-                                if (elapsedMins > 2 && traveledKm > 0.1) {
-                                    const speedKmPerMin = traveledKm / elapsedMins;
-                                    if (speedKmPerMin > 0.01) {
-                                        const remMins = closestUpcoming.distanceKm / speedKmPerMin;
-                                        const etaDate = new Date(now.getTime() + remMins * 60000);
-                                        etaString = etaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) + ' (Live Pace)';
-                                    }
+                            if (closestUpcoming.timeStr) {
+                                const schedHours = parseInt(closestUpcoming.timeStr.substring(0, 2), 10);
+                                const schedMins = parseInt(closestUpcoming.timeStr.substring(2, 4), 10);
+                                const schedTime = new Date(now);
+                                schedTime.setHours(schedHours, schedMins, 0, 0);
+
+                                const diffMins = Math.round((schedTime - now) / 60000);
+                                const formattedTime = `${closestUpcoming.timeStr.substring(0, 2)}${closestUpcoming.timeStr.substring(2, 4)}`;
+
+                                if (diffMins > 0) {
+                                    etaString = `${diffMins} mins (${formattedTime})`;
+                                } else if (diffMins === 0) {
+                                    etaString = `Now (${formattedTime})`;
+                                } else {
+                                    etaString = `${Math.abs(diffMins)} mins ago (${formattedTime})`;
                                 }
-                            }
 
-                            statsHtml += `<b>Next:</b> ${closestUpcoming.name} (${nextMiles} mi / ${closestUpcoming.distanceKm.toFixed(2)} km)<br>` +
-                                         `<b>ETA:</b> ${etaString}<br>`;
-                        }
-                    } catch (err) {
-                        console.error("Calculation error handled safely:", err);
-                    }
-                }
+                                if (parsedPoints.length > 0 && parsedPoints[0].timeStr) {
+                                    const startHm = parsedPoints[0].timeStr;
+                                    const startTime = new Date(now);
+                                    startTime.setHours(parseInt(startHm.substring(0, 2), 10), parseInt(startHm.substring(2, 4), 10), 0, 0);
 
-                const popupContent =
-                    popupTitle +
-                    statsHtml +
-                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
-
-                // Update or create marker popup
-                if (!marker) {
-                    const runnerIcon = L.divIcon({
-                        className: 'racer-icon',
-                        html: '🏃',
-                        iconSize: [36, 36],
-                        iconAnchor: [18, 18],
-                        popupAnchor: [0, -18]
-                    });
-                    marker = 
+                                    const elapsedMins = (now - startTime) / 60000;
+                                    if (elapsedMins > 2 && traveledKm > 0.1) {
+                                        const speedKmPerMin = traveledKm / elapsedMins;
+                                        if (speedKmPerMin > 0.01) {
+                                            const liveRemMins = Math.round(closestUpcoming.distanceKm / speedKmPerMin);
+                                            etaString = `${liveRemMins} mins (${formattedTime})`;
+                                        }
+           
