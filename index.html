@@ -6,7 +6,7 @@
     <title>Team 5535 Live Tracker</title>
 
     <!-- Inline Runner Favicon -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏃</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏃‍♂️</text></svg>">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
@@ -342,7 +342,7 @@
                     `<b>${cleanLocationName}</b><br>` +
                     `ETA: ${etaDisplay}<br>` +
                     `Scheduled: ${schedDisplay}<br>` +
-                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">🗺️ Open in Google Maps</a>`;
 
                 const pointMarker = L.circleMarker([lat, lon], {
                     radius: isCheckpoint ? 12 : 10,
@@ -493,24 +493,27 @@
                         popupTitle = `<b>${remainingKm.toFixed(2)} km to go!</b><br>`;
 
                         let closestUpcoming = null;
-                        let minDistanceAlongRoute = Infinity;
 
-                        parsedPoints.forEach(pt => {
+                        // Iterate through points in their natural array order (chronological sequence)
+                        for (const pt of parsedPoints) {
                             const ptPt = turf.point([pt.lon, pt.lat]);
                             const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
+                            
+                            // Measure distance along the route from the runner to this point
                             const sliced = turf.lineSlice(snappedRunner, snappedPt, cleanRouteLine);
                             const distKm = turf.length(sliced, { units: 'kilometers' });
 
-                            if (distKm > 0.05 && distKm < minDistanceAlongRoute) {
-                                minDistanceAlongRoute = distKm;
+                            // Find the first point that is ahead of the runner (more than 50 meters away along the track)
+                            if (distKm > 0.05) {
                                 closestUpcoming = {
                                     name: pt.name,
                                     distanceKm: distKm,
                                     timeStr: pt.timeStr,
                                     type: pt.type
                                 };
+                                break; // Stop immediately at the first upcoming point in sequence!
                             }
-                        });
+                        }
 
                         if (closestUpcoming) {
                             let etaString = 'TBD';
@@ -548,12 +551,12 @@
                 const popupContent =
                     popupTitle +
                     statsHtml +
-                    `<a href="${mapsUrl}" target="_blank" rel="noopener">📍 Open in Google Maps</a>`;
+                    `<a href="${mapsUrl}" target="_blank" rel="noopener">🗺️ Open in Google Maps</a>`;
 
                 if (!marker) {
                     const runnerIcon = L.divIcon({
                         className: 'racer-icon',
-                        html: '🏃',
+                        html: '🏃‍♂️',
                         iconSize: [36, 36],
                         iconAnchor: [18, 18],
                         popupAnchor: [0, -18]
