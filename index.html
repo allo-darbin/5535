@@ -564,7 +564,7 @@
                     popupTitle = `<b>Finished at ${finishTimeStr}</b><br>` +
                                  `Race time: ${raceTimeStr || 'N/A'}<br>`;
                 } else {
-                    // Runner is still racing: compute distance, upcoming check point, ETA, speed, and target
+                    // Runner is still racing: compute distance, upcoming checkpoint, ETA, speed, and target
                     if (cleanRouteLine && typeof turf !== 'undefined') {
                         try {
                             const runnerPt = turf.point([lon, lat]);
@@ -623,10 +623,13 @@
                                     }
                                 }
 
-                                statsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
+                                statsHtml = `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
                                              `<b>ETA:</b> ${etaString}<br>` +
                                              `<b>Speed:</b> ${speedDisplay}<br>` +
                                              `<i>Your target: ${schedString}</i><br>`;
+                            } else {
+                                // Fallback if past all listed waypoints but not officially flagged finished yet
+                                statsHtml = `<b>Speed:</b> ${speedDisplay}<br>`;
                             }
                         } catch (err) {
                             console.error("Calculation error handled safely:", err);
