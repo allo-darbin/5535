@@ -217,7 +217,7 @@
         let userClosedPopup = false;
         let lastTrackerUpdateTime = null;
         let currentGlobalSpeedKmPerMin = 0;
-        let lastKnownMovingSpeedKmPerMin = 4.0 / 60; // Default fallback speed (~4 km/h) if they stop right at the start
+        let lastKnownMovingSpeedKmPerMin = 4.0 / 60; // Default fallback speed (~4 km/h) if stopped at start
         let currentRunnerDistFromStart = 0;
 
         function extractLineString(geoJson) {
@@ -439,7 +439,7 @@
                 const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
                 const now = new Date();
 
-                // Read speed directly from JSON (e.g., "3.50" kph)
+                // Read speed directly from JSON (e.g., "2.90" kph)
                 const reportedSpeedKphRaw = json.data.sp;
                 const reportedSpeedKph = parseFloat(reportedSpeedKphRaw);
                 currentGlobalSpeedKmPerMin = (Number.isFinite(reportedSpeedKph) && reportedSpeedKph > 0) ? (reportedSpeedKph / 60) : 0;
@@ -525,7 +525,8 @@
 
                             statsHtml += `<b>Next:</b> ${closestUpcoming.name}, ${closestUpcoming.distanceKm.toFixed(2)} km<br>` +
                                          `<b>ETA:</b> ${etaString}<br>` +
-                                         `<b>Scheduled:</b> ${schedString}<br>`;
+                                         `<b>Speed:</b> ${speedDisplay}<br>` +
+                                         `<i>Target was ${schedString}</i><br>`;
                         }
                     } catch (err) {
                         console.error("Calculation error handled safely:", err);
@@ -535,8 +536,6 @@
                 // Re-render points using the effective speed
                 renderPoints();
                 toggleLabels();
-
-                statsHtml += `<b>Speed:</b> ${speedDisplay}<br>`;
 
                 const popupContent =
                     popupTitle +
