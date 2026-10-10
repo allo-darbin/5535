@@ -26,7 +26,7 @@
     "dt": "2026-10-10 12:45:57",
     "fin": 1,
     "ic": null,
-    "b": 82,
+    "b": 80,
     "te": 1,
     "tg": "Male",
     "dw": true,
@@ -154,7 +154,7 @@
       "Time Taken": "04:55:24",
       "Last Timed Location": "Freedom",
       "Group": "Team of 3",
-      "Battery": "82%",
+      "Battery": "80%",
       "Last Tracked": "10 Oct 12:45",
       "Total Dwell": "00:09:57"
     }
