@@ -217,6 +217,7 @@
         let userClosedPopup = false;
         let lastTrackerUpdateTime = null;
         let currentGlobalSpeedKmPerMin = 0;
+        let lastKnownMovingSpeedKmPerMin = 4.0 / 60; // Default fallback speed (~4 km/h) if they stop right at the start
         let currentRunnerDistFromStart = 0;
 
         function extractLineString(geoJson) {
@@ -308,7 +309,9 @@
                     const formattedSchedTime = `${targetTimeStr.substring(0, 2)}${targetTimeStr.substring(2, 4)}`;
                     schedDisplay = formattedSchedTime;
 
-                    if (cleanRouteLine && currentGlobalSpeedKmPerMin > 0.001 && currentRunnerDistFromStart > 0 && typeof turf !== 'undefined') {
+                    const effectiveSpeed = currentGlobalSpeedKmPerMin > 0.001 ? currentGlobalSpeedKmPerMin : lastKnownMovingSpeedKmPerMin;
+
+                    if (cleanRouteLine && effectiveSpeed > 0.001 && currentRunnerDistFromStart > 0 && typeof turf !== 'undefined') {
                         try {
                             const ptPt = turf.point([lon, lat]);
                             const snappedPt = turf.nearestPointOnLine(cleanRouteLine, ptPt);
@@ -320,7 +323,7 @@
                             const remainingDistKm = ptDistFromStart - currentRunnerDistFromStart;
 
                             if (remainingDistKm > 0) {
-                                const liveRemMins = Math.round(remainingDistKm / currentGlobalSpeedKmPerMin);
+                                const liveRemMins = Math.round(remainingDistKm / effectiveSpeed);
                                 const liveEtaDate = new Date(now.getTime() + liveRemMins * 60000);
                                 const liveEtaTimeStr = liveEtaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '');
                                 etaDisplay = `${liveRemMins} mins (${liveEtaTimeStr})`;
@@ -441,6 +444,14 @@
                 const reportedSpeedKph = parseFloat(reportedSpeedKphRaw);
                 currentGlobalSpeedKmPerMin = (Number.isFinite(reportedSpeedKph) && reportedSpeedKph > 0) ? (reportedSpeedKph / 60) : 0;
                 
+                // Track last known non-zero speed for fallback when they stop
+                if (currentGlobalSpeedKmPerMin > 0.001) {
+                    lastKnownMovingSpeedKmPerMin = currentGlobalSpeedKmPerMin;
+                }
+
+                // Choose speed to use: current speed if moving, otherwise last known moving speed
+                const effectiveSpeedKmPerMin = currentGlobalSpeedKmPerMin > 0.001 ? currentGlobalSpeedKmPerMin : lastKnownMovingSpeedKmPerMin;
+
                 const speedDisplay = reportedSpeedKphRaw ? `${reportedSpeedKphRaw} km/h` : 'N/A';
 
                 const coordsChanged = (rawLl !== lastKnownCoords);
@@ -504,8 +515,8 @@
                                 let diffMins = Math.round((schedTime - now) / 60000);
                                 etaString = diffMins >= 0 ? `${diffMins} mins (${formattedTime})` : `${Math.abs(diffMins)} mins ago (${formattedTime})`;
 
-                                if (currentGlobalSpeedKmPerMin > 0.001) {
-                                    const liveRemMins = Math.round(closestUpcoming.distanceKm / currentGlobalSpeedKmPerMin);
+                                if (effectiveSpeedKmPerMin > 0.001) {
+                                    const liveRemMins = Math.round(closestUpcoming.distanceKm / effectiveSpeedKmPerMin);
                                     const liveEtaDate = new Date(now.getTime() + liveRemMins * 60000);
                                     const liveEtaTimeStr = liveEtaDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }).replace(':', '');
                                     etaString = `${liveRemMins} mins (${liveEtaTimeStr})`;
@@ -521,7 +532,7 @@
                     }
                 }
 
-                // Re-render points whenever tracker updates so their ETAs use the latest speed
+                // Re-render points using the effective speed
                 renderPoints();
                 toggleLabels();
 
