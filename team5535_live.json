@@ -8,7 +8,7 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "2.20",
+    "sp": "42.50",
     "a": 0,
     "cl": "",
     "d": null,
@@ -22,11 +22,11 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 07:09",
-    "dt": "2026-10-10 07:09:09",
+    "lt": "10 Oct 26 07:12",
+    "dt": "2026-10-10 07:12:13",
     "fin": 0,
     "ic": null,
-    "b": 97,
+    "b": 96,
     "te": 1,
     "tg": "Male",
     "dw": true,
@@ -151,9 +151,9 @@
     "profile": null,
     "details": {
       "Group": "Team of 3",
-      "Speed": "2.2 kph",
-      "Battery": "97%",
-      "Last Tracked": "10 Oct 07:09"
+      "Speed": "42.5 kph",
+      "Battery": "96%",
+      "Last Tracked": "10 Oct 07:12"
     }
   }
 }
