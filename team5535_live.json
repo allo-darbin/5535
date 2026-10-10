@@ -13,7 +13,7 @@
     "cl": "",
     "d": null,
     "lc": "Stirling Castle",
-    "ll": "56.133943,-3.948564",
+    "ll": "56.133633,-3.951032",
     "co": "#2094f3",
     "tco": "#ffffff",
     "t": "02:29:32",
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 10:34",
-    "dt": "2026-10-10 10:34:29",
+    "lt": "10 Oct 26 10:35",
+    "dt": "2026-10-10 10:35:29",
     "fin": 0,
     "ic": null,
     "b": 87,
@@ -156,7 +156,7 @@
       "Group": "Team of 3",
       "Speed": "9.8 kph",
       "Battery": "87%",
-      "Last Tracked": "10 Oct 10:34",
+      "Last Tracked": "10 Oct 10:35",
       "Total Dwell": "00:06:28"
     }
   }
