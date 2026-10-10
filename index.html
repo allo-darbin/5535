@@ -169,12 +169,12 @@
         ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(evt => {
             document.addEventListener(evt, () => {
                 const btn = document.getElementById('fullscreenBtn');
-                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullscreenElement || document.msFullscreenElement);
+                const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement);
                 if (btn) btn.innerText = isFS ? 'Exit Fullscreen' : '⛶ Fullscreen';
             });
         });
 
-        // 1. Initialise base maps and layer switcher.
+        // 1. Initialise base maps and layer switcher with persistence.
         const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
@@ -185,10 +185,14 @@
             attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, swisstopo, and the GIS User Community'
         });
 
+        // Retrieve saved layer preference, defaulting to osmLayer
+        const savedLayerName = localStorage.getItem('selectedMapLayer');
+        const initialLayer = (savedLayerName === 'Satellite View') ? satelliteLayer : osmLayer;
+
         const map = L.map('map', {
             center: [56.122185, -3.91031],
             zoom: 13,
-            layers: [osmLayer]
+            layers: [initialLayer]
         });
 
         const baseMaps = {
@@ -197,6 +201,11 @@
         };
 
         L.control.layers(baseMaps, null, { position: 'topleft' }).addTo(map);
+
+        // Save preference when user changes layers
+        map.on('baselayerchange', function (e) {
+            localStorage.setItem('selectedMapLayer', e.name);
+        });
 
         let marker = null;
         let pointLayers = [];
@@ -421,7 +430,7 @@
             });
         }
 
-        // 4. Fetch and display the latest racer position (never steals viewport focus)
+        // 4. Fetch and display the latest racer position
         async function updateTracker() {
             try {
                 const response = await fetch(
@@ -566,7 +575,6 @@
                     marker.bindPopup(popupContent, { autoClose: false, closeOnClick: false });
                     marker.openPopup();
                     
-                    // Only center map on the very first load
                     map.setView([lat, lon], 14);
                     firstPositionReceived = true;
                 } else {
