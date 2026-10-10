@@ -8,12 +8,12 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "4.70",
+    "sp": "6.60",
     "a": 0,
     "cl": "",
     "d": null,
     "lc": "Wallace Monument",
-    "ll": "56.139052,-3.917699",
+    "ll": "56.137736,-3.917473",
     "co": "#2094f3",
     "tco": "#ffffff",
     "t": "04:15:45",
@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 12:00",
-    "dt": "2026-10-10 12:00:45",
+    "lt": "10 Oct 26 12:01",
+    "dt": "2026-10-10 12:01:44",
     "fin": 0,
     "ic": null,
     "b": 83,
@@ -35,7 +35,7 @@
     "v": true,
     "af": 0,
     "as": 0,
-    "totaldwell": "00:08:58",
+    "totaldwell": "00:09:27",
     "splitLabel": "Split",
     "splits": [
       {
@@ -117,8 +117,8 @@
         "i": 402118,
         "n": "Wallace Monument",
         "ct": "control",
-        "dwell": "00:00:30",
-        "ds": 30,
+        "dwell": "00:00:59",
+        "ds": 59,
         "t": "Sat 12:00:45",
         "s": "01:01:50",
         "ss": 3710,
@@ -154,10 +154,10 @@
       "Time Taken": "04:15:45",
       "Last Timed Location": "Wallace Monument",
       "Group": "Team of 3",
-      "Speed": "4.7 kph",
+      "Speed": "6.6 kph",
       "Battery": "83%",
-      "Last Tracked": "10 Oct 12:00",
-      "Total Dwell": "00:08:58"
+      "Last Tracked": "10 Oct 12:01",
+      "Total Dwell": "00:09:27"
     }
   }
 }
