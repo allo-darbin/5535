@@ -22,8 +22,8 @@
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 18:12",
-    "dt": "2026-10-10 18:12:38",
+    "lt": "10 Oct 26 18:13",
+    "dt": "2026-10-10 18:13:38",
     "fin": 0,
     "ic": null,
     "b": 58,
@@ -151,7 +151,7 @@
       "Last Timed Location": "Wallace Monument",
       "Group": "MOpen",
       "Battery": "58%",
-      "Last Tracked": "10 Oct 18:12",
+      "Last Tracked": "10 Oct 18:13",
       "Total Dwell": "00:28:26"
     }
   }
