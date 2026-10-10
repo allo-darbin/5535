@@ -8,22 +8,22 @@
     "c": 3,
     "eco": 3,
     "e": 21331,
-    "sp": "10.30",
+    "sp": "9.10",
     "a": 0,
     "cl": "",
     "d": null,
-    "lc": "King Robert The Bruce",
-    "ll": "56.132837,-3.946728",
+    "lc": "Stirling Castle",
+    "ll": "56.132816,-3.949359",
     "co": "#2094f3",
     "tco": "#ffffff",
-    "t": "01:10:15",
+    "t": "02:03:36",
     "g": "Team of 3",
     "f": "",
     "ph": 0,
     "st": null,
     "ts": true,
-    "lt": "10 Oct 26 09:47",
-    "dt": "2026-10-10 09:47:36",
+    "lt": "10 Oct 26 09:48",
+    "dt": "2026-10-10 09:48:36",
     "fin": 0,
     "ic": null,
     "b": 89,
@@ -87,16 +87,16 @@
         "i": 402116,
         "n": "Stirling Castle",
         "ct": "control",
-        "dwell": null,
-        "ds": null,
-        "t": "",
-        "s": "",
-        "ss": 0,
+        "dwell": "00:00:00",
+        "ds": 0,
+        "t": "Sat 09:48:36",
+        "s": "00:53:21",
+        "ss": 3201,
         "p": 0,
         "pt": null,
         "note": "",
-        "v": null,
-        "sss": "01:10:15"
+        "v": "2026-10-10 09:48:36",
+        "sss": "02:03:36"
       },
       {
         "i": 402117,
@@ -111,7 +111,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "01:10:15"
+        "sss": "02:03:36"
       },
       {
         "i": 402118,
@@ -126,7 +126,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "01:10:15"
+        "sss": "02:03:36"
       },
       {
         "i": 402119,
@@ -141,7 +141,7 @@
         "pt": null,
         "note": "",
         "v": null,
-        "sss": "01:10:15"
+        "sss": "02:03:36"
       }
     ],
     "mailheader": null,
@@ -151,12 +151,12 @@
     "jg": null,
     "profile": null,
     "details": {
-      "Time Taken": "01:10:15",
-      "Last Timed Location": "King Robert The Bruce",
+      "Time Taken": "02:03:36",
+      "Last Timed Location": "Stirling Castle",
       "Group": "Team of 3",
-      "Speed": "10.3 kph",
+      "Speed": "9.1 kph",
       "Battery": "89%",
-      "Last Tracked": "10 Oct 09:47",
+      "Last Tracked": "10 Oct 09:48",
       "Total Dwell": "00:03:29"
     }
   }
